@@ -12,14 +12,13 @@ class Users(models.Model):
 
 class Message(models.Model):
     ID_Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
-    ID_Receiver = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Receiver")
     ID_Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True)
     Text = models.CharField(max_length=5000)
     ID_Conv = models.IntegerField()
     Date = models.DateTimeField()
 
     def __str__(self):
-        return "S: " + str(self.ID_Sender) + "  R:  " + str(self.ID_Receiver) + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+        return "S: " + str(self.ID_Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
 
 class Conv_User(models.Model):
     PrivateKey = models.IntegerField()
