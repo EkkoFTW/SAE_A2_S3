@@ -1,0 +1,22 @@
+{% if latest_message_list %}
+<ul>
+    {% for Message in latest_message_list %}
+        <li><p>{{Message.Date}}</p>
+            <a href="/Messagerie/{{ Message.id }}/">{{ Message.ID_Sender }}</a>
+            <p> {{ Message.Text }} </p>
+            <br>
+    {% endfor %}
+</ul>
+{% else %}
+    <p>No Message are available.</p>
+{% endif %}
+
+<form>
+    {% csrf_token %}
+    <fieldset>
+        <textarea name="text" id="toSend">Message @#########</textarea>
+        <label for="toSend"></label>
+        <br>
+    </fieldset>
+    <button type="submit"> Send </button>
+</form>
