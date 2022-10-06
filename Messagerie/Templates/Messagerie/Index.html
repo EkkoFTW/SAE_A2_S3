@@ -2,7 +2,7 @@
 <ul>
     {% for Message in latest_message_list %}
         <li><p>{{Message.Date}}</p>
-            <a href="/Messagerie/{{ Message.id }}/">{{ Message.ID_Sender }}</a>
+            <a href="/Messagerie/{{ Message.ID_Sender }}/">{{ Message.ID_Sender }}</a>
             <p> {{ Message.Text }} </p>
             <br>
     {% endfor %}
@@ -11,10 +11,10 @@
     <p>No Message are available.</p>
 {% endif %}
 
-<form>
+<form method="post">
     {% csrf_token %}
     <fieldset>
-        <textarea name="text" id="toSend">Message @#########</textarea>
+        <textarea name="text" id="toSend"></textarea>
         <label for="toSend"></label>
         <br>
     </fieldset>
