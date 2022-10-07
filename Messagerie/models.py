@@ -18,8 +18,8 @@ class Users(AbstractBaseUser, PermissionsMixin):
     def get_username_value(self):
         return self.username_value
 
-    def __repr__(self):
-        return '%r'(self.__class__.__name__)
+    def __str__(self):
+        return "Username: " + str(self.username_value) + "    Mail: " + str(self.email)
 
     objects = CustomUserManager()
 

@@ -15,10 +15,20 @@ def index(request):
 def log(request):
     template = loader.get_template('Messagerie/Log.html')
     context = {}
-    toConnect = login(request.POST.get('username'), request.POST.get('password'))
-    if (toConnect == -1):
-        print("xD nop personne a ce blase")
+    toConnect = login(request.session.get('Username'), request.session.get('Password'))
+    if (type(toConnect) == type(Users)):
+        print("Cookie found")
+        print(toConnect)
     else:
-        print("ui.")
+        print("No cookie found")
+        request.session.get('Mail')
+        toConnect = login(request.POST.get('username'), request.POST.get('password'))
+        if (toConnect == -1):
+            print("type again u monke")
+        else:
+            print(toConnect)
+            template = loader.get_template('Messagerie/index.html')
+            request.session['Username'] = toConnect.username_value
+            request.session['Mail'] = toConnect.email
     return HttpResponse(template.render(context, request))
 
