@@ -18,8 +18,8 @@ def log(request):
     connected = False
 
     template = loader.get_template('Messagerie/Log.html')
-
-    if auto_login(request.COOKIES.get('sessionid'), request.session.get('userid')) == -1:
+    user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+    if user == -1:
         print("No cookie found")
         toConnect = login(request.POST.get('username'), request.POST.get('password'), request.COOKIES.get('sessionid'))
         if (toConnect == -1):
@@ -36,6 +36,6 @@ def log(request):
         print(user.sessionid)
         template = loader.get_template('Messagerie/index.html')
 
-        createConv(request, user)
+        Conv = createConv(request, user)
     return HttpResponse(template.render(context, request))
 

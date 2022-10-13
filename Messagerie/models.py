@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from .managers import CustomUserManager
-
 class Users(AbstractBaseUser, PermissionsMixin):
     username_value = models.CharField(max_length=30, unique=True)
     email = models.EmailField(unique=True)
@@ -12,7 +11,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
-    Conv_User = models.ManyToManyField(Conv_User)
+    Conv_User = models.ManyToManyField('Conv_User')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username_value']
@@ -30,20 +29,19 @@ class Users(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+class Conv_User(models.Model):
+    privateKey = models.IntegerField()
+    publicKey = models.IntegerField()
+    Messages = models.ManyToManyField('Message')
+    Users = models.ManyToManyField(Users)
+
+class Conv_Admin(Conv_User):
+    FOR_NOW = models.IntegerField()
 class Message(models.Model):
     ID_Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
     ID_Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True)
     Text = models.CharField(max_length=5000)
     Date = models.DateTimeField()
-
-class Conv_User(models.Model):
-    PrivateKey = models.IntegerField()
-    Publickey = models.IntegerField()
-    Messages = models.ManyToManyField(Message)
-    Users = models.ManyToManyField(Users)
-
-class Conv_Admin(Conv_User):
-    FOR_NOW = models.IntegerField()
 
     def __str__(self):
         return "S: " + str(self.ID_Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)

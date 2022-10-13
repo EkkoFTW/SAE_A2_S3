@@ -29,12 +29,21 @@ def auto_login(Sessionid, Userid):
         return -1
 
 def createConv(request, user):
-    newConv = Conv_User(1, 1)
+    newConv = Conv_User(privateKey=1, publicKey=1)
     newConv.save()
+    user.Conv_User.add(newConv)
+    user.save()
+    newConv.Users.add(user)
+    newConv.save()
+    return newConv
+
 
 def addUserToConv(Conv, user):
     for usr in user:
-        print("")
+        updateConv = Conv.Users.add(usr)
+        updateUsr = usr.Conv_User.add(user)
+        updateUsr.save()
+    updateConv.save()
 
 
 
