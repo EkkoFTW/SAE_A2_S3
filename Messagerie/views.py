@@ -22,7 +22,7 @@ def log(request):
     if user == -1:
         print("No cookie found")
         toConnect = login(request.POST.get('username'), request.POST.get('password'), request.COOKIES.get('sessionid'))
-        if (toConnect == -1):
+        if toConnect == -1:
             print("Password = false")
         else:
             print(toConnect)
@@ -31,7 +31,7 @@ def log(request):
             connected = True
     else:
         connected = True
-    if connected == True:
+    if connected:
         user.set_sessionid(request.COOKIES.get('sessionid'))
         print(user.sessionid)
         template = loader.get_template('Messagerie/index.html')
