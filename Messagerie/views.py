@@ -1,9 +1,10 @@
 from django.http import HttpResponse
+from django.http import HttpRequest
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
 from .models import *
 from .Source import *
-
+from django.conf import settings
 def index(request):
     latest_message_list = Message.objects.order_by('-Date')
     template = loader.get_template('Messagerie/Index.html')
@@ -13,22 +14,28 @@ def index(request):
     return HttpResponse(template.render(context, request))
 
 def log(request):
-    template = loader.get_template('Messagerie/Log.html')
     context = {}
-    toConnect = login(request.session.get('Username'), request.session.get('Password'))
-    if (type(toConnect) == type(Users)):
-        print("Cookie found")
-        print(toConnect)
-    else:
+    connected = False
+
+    template = loader.get_template('Messagerie/Log.html')
+
+    if auto_login(request.COOKIES.get('sessionid'), request.session.get('userid')) == -1:
         print("No cookie found")
-        request.session.get('Mail')
-        toConnect = login(request.POST.get('username'), request.POST.get('password'))
+        toConnect = login(request.POST.get('username'), request.POST.get('password'), request.COOKIES.get('sessionid'))
         if (toConnect == -1):
-            print("type again u monke")
+            print("Password = false")
         else:
             print(toConnect)
-            template = loader.get_template('Messagerie/index.html')
-            request.session['Username'] = toConnect.username_value
-            request.session['Mail'] = toConnect.email
+            request.session['userid'] = toConnect.username_value
+            user = toConnect
+            connected = True
+    else:
+        connected = True
+    if connected == True:
+        user.set_sessionid(request.COOKIES.get('sessionid'))
+        print(user.sessionid)
+        template = loader.get_template('Messagerie/index.html')
+
+        createConv(request, user)
     return HttpResponse(template.render(context, request))
 
