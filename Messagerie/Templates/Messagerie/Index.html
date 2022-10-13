@@ -1,4 +1,11 @@
 {% if latest_message_list %}
+
+<head>
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'Messagerie/conversation.css' %}">
+</head>
+
 <ul>
     {% for Message in latest_message_list %}
         <li><p>{{Message.Date}}</p>
