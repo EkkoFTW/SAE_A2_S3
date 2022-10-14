@@ -1,4 +1,3 @@
-{% if latest_message_list %}
 
 <head>
 {% load static %}
@@ -6,20 +5,31 @@
 <link rel="stylesheet" href="{% static 'Messagerie/conversation.css' %}">
 </head>
 
-<ul>
-    {% for Message in latest_message_list %}
+{% if latest_message_list %}
+    <ul>{% for Message in latest_message_list %}
         <li><p>{{Message.Date}}</p>
-            <a href="/Messagerie/{{ Message.ID_Sender }}/">{{ Message.ID_Sender }}</a>
+            <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
             <p> {{ Message.Text }} </p>
             <br>
-    {% endfor %}
-</ul>
-{% else %}
-    <p>No Message are available.</p>
+        {% endfor %}
+    </ul>
+    {% else %}
+        <p>No Message are available.</p>
 {% endif %}
 
 <form method="post">
     {% csrf_token %}
+    {% if conv_list %}
+    <ul>
+        {% for conv in conv_list %}
+            <input type="radio" name="conv" value="{{conv.id}}">{{ conv.Name }}</input>
+            <br>
+        {% endfor %}
+    </ul>
+    {% else %}
+        <p>No conv are available.</p>
+    {% endif %}
+
     <fieldset>
         <textarea name="text" id="toSend"></textarea>
         <label for="toSend"></label>
