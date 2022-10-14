@@ -22,28 +22,32 @@ class Users(AbstractBaseUser, PermissionsMixin):
     def get_sessionid(self):
         return self.sessionid
 
-    def set_sessionid(self, sessionid):
-        self.sessionid = sessionid
+    def set_sessionid(self, _sessionid):
+        print("new sessionid: "+ _sessionid)
+        self.sessionid = _sessionid
     def __str__(self):
-        return "Username: " + str(self.username_value) + "    Mail: " + str(self.email) + "    Sessionid: " + str(self.sessionid)
+        return "Username: " + str(self.username_value) + "    Mail: " + str(self.email)
 
     objects = CustomUserManager()
 
 class Conv_User(models.Model):
+    Name = models.CharField(max_length=20, default="Unnamed", null=True, blank=True)
     privateKey = models.IntegerField()
     publicKey = models.IntegerField()
     Messages = models.ManyToManyField('Message')
     Users = models.ManyToManyField(Users)
 
+    def __str__(self):
+        return self.Name + " " + str(self.id)
 class Conv_Admin(Conv_User):
     FOR_NOW = models.IntegerField()
 class Message(models.Model):
-    ID_Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
-    ID_Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True)
+    Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
+    Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
     Text = models.CharField(max_length=5000)
     Date = models.DateTimeField()
 
     def __str__(self):
-        return "S: " + str(self.ID_Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+        return "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
 
 
