@@ -1,7 +1,7 @@
 import Messagerie.models
 from django.contrib.auth import *
 from .models import *
-def login(Username, Passwd, sessionid):
+def login(Username, Passwd):
     print('DEBUG: function "login('+ str(Username) + ', ' + str(Passwd) +') ---> ', end="")
     user = authenticate(username=Username, password=Passwd)
     if user is not None:
@@ -19,17 +19,18 @@ def auto_login(Sessionid, Userid):
     user = Users.objects.get(username_value=Userid)
     if type(user) == type(Users):
         print("userid dosn't exist")
+        print("")
         return -1
     sessionid = user.get_sessionid()
-    print(user)
-    print(sessionid)
     if sessionid == Sessionid:
+        print("Connected to " + str(user))
         return user
     else:
+        print("Wrong SessionID for " + str(user))
         return -1
 
 def createConv(request, user):
-    newConv = Conv_User(privateKey=1, publicKey=1)
+    newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
     newConv.save()
     user.Conv_User.add(newConv)
     user.save()
@@ -41,9 +42,19 @@ def createConv(request, user):
 def addUserToConv(Conv, user):
     for usr in user:
         updateConv = Conv.Users.add(usr)
+        updateConv.save()
         updateUsr = usr.Conv_User.add(user)
         updateUsr.save()
-    updateConv.save()
 
 
+def sendMsg(user, request):
+    conv = request.POST.get('conv')
+    text = request.POST.get('text')
+    if text is not None and conv is not None:
+        conv = Conv_User.objects.get(id=conv)
+        toAdd = Message(Sender=user, Text=text, Date=timezone.now())
+        toAdd.save()
+
+        conv.Messages.add(toAdd)
+        print(Conv_User.objects.all())
 
