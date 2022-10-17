@@ -51,19 +51,9 @@ class Conv_Admin(Conv_User):
     FOR_NOW = models.IntegerField()
 
 
-class Message(models.Model):
-    Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
-    Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
-    Text = models.CharField(max_length=5000)
-    Date = models.DateTimeField()
-
-    def __str__(self):
-        return "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
-
-
-class UploadFileForm(forms.Form):
-    title = forms.CharField(max_length=50)
-    data = forms.FileField()
+class File(models.Model):
+    title = models.CharField(max_length=200)
+    file = models.FileField(upload_to='files')
 
 class Image(models.Model):
     title = models.CharField(max_length=200)
@@ -71,3 +61,13 @@ class Image(models.Model):
 
     def __str__(self):
         return self.title
+
+class Message(models.Model):
+    Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
+    Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
+    Text = models.CharField(max_length=5000)
+    Date = models.DateTimeField()
+    images = models.ManyToManyField(Image)
+
+    def __str__(self):
+        return "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)

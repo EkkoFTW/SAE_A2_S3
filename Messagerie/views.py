@@ -56,16 +56,18 @@ def log(request):
 
 def image_upload_view(request):
     """Process images uploaded by users"""
-    print("I'm in upload")
+    print("image_upload_view")
     if request.method == 'POST':
         form = ImageForm(request.POST, request.FILES)
         if form.is_valid():
+            print("Image valid")
             form.save()
             # Get the current instance object to display in the template
             img_obj = form.instance
-            return render(request, 'index.html', {'form': form, 'img_obj': img_obj})
+            return render(request, 'Messagerie/Upload.html', {'form': form, 'img_obj': img_obj})
+        else:
+            form.FileForm(request.POST, request.FILES)
     else:
-        print("request.method != 'Post'")
         form = ImageForm()
         response = HttpResponse()
         response.status_code = 200
