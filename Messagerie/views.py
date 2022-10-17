@@ -2,6 +2,8 @@ from django.http import HttpResponse
 from django.http import HttpRequest
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
+
+from .forms import ImageForm
 from .models import *
 from .Source import *
 from django.conf import settings
@@ -51,3 +53,23 @@ def log(request):
         #sendMsg(testConv, user, request)
     return HttpResponse(template.render(context, request))
 
+
+def image_upload_view(request):
+    """Process images uploaded by users"""
+    print("I'm in upload")
+    if request.method == 'POST':
+        form = ImageForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            # Get the current instance object to display in the template
+            img_obj = form.instance
+            return render(request, 'index.html', {'form': form, 'img_obj': img_obj})
+    else:
+        print("request.method != 'Post'")
+        form = ImageForm()
+        response = HttpResponse()
+        response.status_code = 200
+        response.content = loader.get_template("Messagerie/Upload.html")
+        response.headers = {'form': form}
+
+    return HttpResponse(render(request, 'Messagerie/Upload.html', {'form': form}))
