@@ -6,9 +6,9 @@
 </head>
 <body>
     <form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-   {{ form.as_p }}
-  <button type="submit">Upload</button>
+    {% csrf_token %}
+    {{ imageform.as_p }}
+    <button type="submit" name="image">Upload</button>
 </form>
 
 {% if img_obj %}
@@ -16,5 +16,10 @@
   <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
 {% endif %}
 
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ fileform.as_p }}
+    <button type="submit" name="file">Upload</button>
+</form>
 </body>
 </html>
