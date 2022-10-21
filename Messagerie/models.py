@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from .managers import CustomUserManager
 class Users(AbstractBaseUser, PermissionsMixin):
-    username_value = models.CharField(max_length=30, unique=True)
+    username_value = models.CharField(max_length=30)
     email = models.EmailField(unique=True)
     PP = models.CharField(max_length=1000, default="Empty", blank=True)
     sessionid = models.CharField(max_length=50, default="Empty", blank=True)

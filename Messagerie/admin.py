@@ -8,7 +8,4 @@ admin.site.register(Conv_User)
 
 
 
-
-
-
 # Register your models here.
