@@ -16,7 +16,7 @@ def auto_login(Sessionid, Userid):
     if Sessionid is None or Userid is None:
         print("Nop")
         return -1
-    user = Users.objects.get(username_value=Userid)
+    user = Users.objects.get(email=Userid)
     if type(user) == type(Users):
         print("userid dosn't exist")
         print("")
