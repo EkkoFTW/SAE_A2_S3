@@ -1,10 +1,9 @@
-
 <head>
-{% load static %}
-
-<link rel="stylesheet" href="{% static 'Messagerie/conversation.css' %}">
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'Messagerie/conversation.css' %}">
 </head>
 
+<p>ID_Conv_User: {{conv_shown}} </p>
 {% if latest_message_list %}
     <ul>{% for Message in latest_message_list %}
         <li><p>{{Message.Date}}</p>

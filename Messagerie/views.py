@@ -8,46 +8,50 @@ from django.conf import settings
 from django.shortcuts import redirect
 
 def index(request):
-    user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
-    conv_list = Conv_User.objects.filter(Users=user)
-    firstConv = conv_list[0]
-    latest_message_list = firstConv.Messages.all().order_by('-Date')[:4]
-    conv=firstConv
-    updatedConv = request.POST.get('conv')
+    try:
+        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+        if user == -1:
+            print("no sessionid")
+            return redirect('log')
+    except:
+        return redirect('log')
 
-    if updatedConv is not None:
-        conv = updatedConv
-    sendMsg(user, request)
+    latest_message_list, conv_list, conv = showMessageList(user, request)
+
     template = loader.get_template('Messagerie/Index.html')
-    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, }
+    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, }
+
+    #Users.objects.create_user(username_value="test2", email="test2@test2.fr", password="test2", PP="")
+
     return HttpResponse(template.render(context, request))
 
 def log(request):
     context = {}
     connected = False
     template = loader.get_template('Messagerie/Log.html')
-    user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
-    if user == -1:
-        print("No cookie found")
-        toConnect = login(request.POST.get('username'), request.POST.get('password'))
-        if toConnect == -1:
-            print("Password = false")
-        else:
-            print(toConnect)
-            request.session['userid'] = toConnect.username_value
-            user = toConnect
-            connected = True
-    else:
+    user = -1
+    try:
+        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+    except:
+        print("error cookies sessionid")
+    if user != -1:
         connected = True
+    else:
+        print("not auto-logged in")
+        user = login(request.POST.get('username'), request.POST.get('password'))
+        if user != -1:
+            print("connected", end="")
+            connected = True
+            request.session['userid'] = user.username_value
+            try:
+                user.sessionid = request.COOKIES.get('sessionid')
+                user.save()
+            except:
+                print('no sessionid set')
+        else:
+            print('no matching account')
     if connected:
-        user.sessionid = request.COOKIES.get('sessionid')
-        user.save()
+        print("Connected")
         return redirect('index')
-
-        #Conv = createConv(request, user)
-        #conv_list = Conv_User.objects.filter(Users=user)
-        #context = {'conv_list': conv_list, }
-        #testConv = Conv_User.objects.get(id=36)
-        #sendMsg(testConv, user, request)
     return HttpResponse(template.render(context, request))
 
