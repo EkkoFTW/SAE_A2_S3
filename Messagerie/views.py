@@ -2,10 +2,17 @@ from django.http import HttpResponse
 from django.http import HttpRequest
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
+
+from .forms import ImageForm, FileForm
 from .models import *
 from .Source import *
 from django.conf import settings
 from django.shortcuts import redirect
+
+def handle_uploaded_file(f):
+    with open('E:\Code\A2\SAE_A2_S3\media.txt', 'wb+') as destination:
+        for chunk in f.chunks():
+            destination.write(chunk)
 
 def index(request):
     user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
@@ -51,3 +58,36 @@ def log(request):
         #sendMsg(testConv, user, request)
     return HttpResponse(template.render(context, request))
 
+
+def image_upload_view(request):
+    """Process images uploaded by users"""
+    print("image_upload_view")
+    imageform = ImageForm()
+    fileform = FileForm()
+    if request.method == 'POST':
+        if "image" in request.POST:
+            print("image")
+            imageform = ImageForm(request.POST, request.FILES)
+            fileform = FileForm()
+            if imageform.is_valid():
+                imageform.save()
+                # Get the current instance object to display in the template
+                img_obj = imageform.instance
+                return render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform , 'img_obj': img_obj})
+        elif "file" in request.POST:
+            print("file")
+            imageform = ImageForm()
+            fileform = FileForm(request.POST, request.FILES)
+            if fileform.is_valid():
+                handle_uploaded_file(request.FILES['file'])
+        else:
+            print("No type")
+    else:
+        imageform = ImageForm()
+        fileform = FileForm()
+        response = HttpResponse()
+        response.status_code = 200
+        response.content = loader.get_template("Messagerie/Upload.html")
+        response.headers = {'imageform': imageform, 'fileform': fileform}
+
+    return HttpResponse(render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform}))
