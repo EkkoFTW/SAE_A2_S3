@@ -34,5 +34,16 @@
         <label for="toSend"></label>
         <br>
     </fieldset>
-    <button type="submit"> Send </button>
+    <button type="submit" name="action" value="message"> Send </button>
 </form>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+   {{ form.as_p }}
+  <button type="submit" name="action" value="image">Upload</button>
+</form>
+
+{% if img_obj %}
+  <h3>Succesfully uploaded : {{img_obj.title}}</h3>
+  <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
+{% endif %}
