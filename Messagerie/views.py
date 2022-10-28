@@ -49,7 +49,7 @@ def log(request):
         if user != -1:
             print("connected", end="")
             connected = True
-            request.session['userid'] = user.username_value
+            request.session['userid'] = user.email
             try:
                 user.sessionid = request.COOKIES.get('sessionid')
                 user.save()
