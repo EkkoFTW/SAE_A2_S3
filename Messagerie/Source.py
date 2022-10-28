@@ -17,12 +17,11 @@ def auto_login(Sessionid, Userid):
         print("Nop")
         return -1
     user = Users.objects.get(email=Userid)
-    if type(user) == type(Users):
+    if type(user) is None:
         print("userid dosn't exist")
         print("")
         return -1
-    sessionid = user.get_sessionid()
-    print(user.get_sessionid)
+    sessionid = user.sessionid
     if sessionid == Sessionid:
         print("Connected to " + str(user))
         return user
@@ -77,3 +76,9 @@ def showMessageList(user, request):
 
     return latest_message_list, conv_list, conv
 
+def deleteConv(IDconv):
+    conv = Conv_User.objects.get(pk=IDconv)
+    if conv is None:
+        return -1
+    else:
+        conv.delete()

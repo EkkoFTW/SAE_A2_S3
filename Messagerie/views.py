@@ -16,7 +16,7 @@ def handle_uploaded_file(f):
 
 def index(request):
     try:
-        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+        user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:
             print("no sessionid")
             return redirect('log')
@@ -38,7 +38,7 @@ def log(request):
     template = loader.get_template('Messagerie/Log.html')
     user = -1
     try:
-        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+        user = auto_login(request.session.session_key, request.session.get('userid'))
     except:
         print("error cookies sessionid")
     if user != -1:
@@ -55,6 +55,9 @@ def log(request):
                 user.save()
             except:
                 print('no sessionid set')
+                request.session.create()
+                user.sessionid = request.session.session_key
+                user.save()
         else:
             print('no matching account')
     if connected:
