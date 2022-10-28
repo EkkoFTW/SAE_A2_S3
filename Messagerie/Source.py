@@ -55,7 +55,6 @@ def sendMsg(user, request):
             conv = Conv_User.objects.get(id=conv)
             toAdd = Message(Sender=user, Text=text, Date=timezone.now())
             toAdd.save()
-
             conv.Messages.add(toAdd)
     except:
         print("Conv does not exist")

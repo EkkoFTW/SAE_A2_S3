@@ -26,7 +26,7 @@ def index(request):
     #createConv(request, user)
     #deleteConv(44)
     #deleteConv(43)
-    msgCleaner()
+    #msgCleaner()
     latest_message_list, conv_list, conv = showMessageList(user, request)
     template = loader.get_template('Messagerie/Index.html')
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, }
@@ -40,6 +40,8 @@ def log(request):
     connected = False
     template = loader.get_template('Messagerie/Log.html')
     user = -1
+    if request.session.session_key is None:
+        request.session.create()
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
     except:
@@ -58,7 +60,6 @@ def log(request):
                 user.save()
             except:
                 print('no sessionid set')
-                request.session.create()
                 user.sessionid = request.session.session_key
                 user.save()
         else:
