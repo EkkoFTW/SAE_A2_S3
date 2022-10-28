@@ -50,13 +50,15 @@ def addUserToConv(Conv, user):
 def sendMsg(user, request):
     conv = request.POST.get('conv')
     text = request.POST.get('text')
-    if text is not None and conv is not None:
-        conv = Conv_User.objects.get(id=conv)
-        toAdd = Message(Sender=user, Text=text, Date=timezone.now())
-        toAdd.save()
+    try:
+        if text is not None and conv is not None:
+            conv = Conv_User.objects.get(id=conv)
+            toAdd = Message(Sender=user, Text=text, Date=timezone.now())
+            toAdd.save()
 
-        conv.Messages.add(toAdd)
-        print(Conv_User.objects.all())
+            conv.Messages.add(toAdd)
+    except:
+        print("Conv does not exist")
 
 def showMessageList(user, request):
 
@@ -77,8 +79,18 @@ def showMessageList(user, request):
     return latest_message_list, conv_list, conv
 
 def deleteConv(IDconv):
-    conv = Conv_User.objects.get(pk=IDconv)
-    if conv is None:
-        return -1
-    else:
-        conv.delete()
+    try:
+        conv = Conv_User.objects.get(pk=IDconv)
+        if conv is None:
+            return -1
+        else:
+            conv.Messages.all().delete()
+            conv.delete()
+    except:
+        print("Conv does not exist")
+
+def msgCleaner():
+    msgList = Message.objects.all()
+    convList = Conv_User.objects.all()
+
+
