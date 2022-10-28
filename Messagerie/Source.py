@@ -84,7 +84,7 @@ def deleteConv(IDconv):
         if conv is None:
             return -1
         else:
-            conv.Messages.all().delete()
+            #conv.Messages.all().delete()
             conv.delete()
     except:
         print("Conv does not exist")
@@ -92,5 +92,16 @@ def deleteConv(IDconv):
 def msgCleaner():
     msgList = Message.objects.all()
     convList = Conv_User.objects.all()
+    tabMsg = [False]*(((Message.objects.order_by('-id')[:1])[0].id)+1)
+    tabMsg2 = tabMsg
+    for conv in convList:
+        for msg in conv.Messages.all():
+            tabMsg[msg.id]=True
+
+    for msg in msgList:
+        if tabMsg2[msg.id] == False:
+            msg.delete()
+
+
 
 

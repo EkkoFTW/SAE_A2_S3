@@ -24,7 +24,8 @@ def index(request):
         return redirect('log')
 
     #createConv(request, user)
-    #deleteConv(42)
+    #deleteConv(44)
+    #deleteConv(43)
     msgCleaner()
     latest_message_list, conv_list, conv = showMessageList(user, request)
     template = loader.get_template('Messagerie/Index.html')
