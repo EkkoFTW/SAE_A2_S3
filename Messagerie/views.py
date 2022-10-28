@@ -16,15 +16,18 @@ def handle_uploaded_file(f):
 
 def index(request):
     try:
-        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+        user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:
             print("no sessionid")
             return redirect('log')
     except:
         return redirect('log')
 
+    #createConv(request, user)
+    #deleteConv(44)
+    #deleteConv(43)
+    #msgCleaner()
     latest_message_list, conv_list, conv = showMessageList(user, request)
-
     template = loader.get_template('Messagerie/Index.html')
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, }
 
@@ -37,8 +40,10 @@ def log(request):
     connected = False
     template = loader.get_template('Messagerie/Log.html')
     user = -1
+    if request.session.session_key is None:
+        request.session.create()
     try:
-        user = auto_login(request.COOKIES.get('sessionid'), request.session.get('userid'))
+        user = auto_login(request.session.session_key, request.session.get('userid'))
     except:
         print("error cookies sessionid")
     if user != -1:
@@ -55,6 +60,8 @@ def log(request):
                 user.save()
             except:
                 print('no sessionid set')
+                user.sessionid = request.session.session_key
+                user.save()
         else:
             print('no matching account')
     if connected:

@@ -70,4 +70,4 @@ class Message(models.Model):
     images = models.ManyToManyField(Image)
 
     def __str__(self):
-        return "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+        return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
