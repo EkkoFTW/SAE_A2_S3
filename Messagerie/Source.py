@@ -85,13 +85,17 @@ def sendMsg(user, request):
 
 def showMessageList(user, request):
     conv_list = user.Conv_User.all()
+    print(conv_list)
+    print(conv_list.filter(id=1))
     try:
         firstConv = conv_list[0]
     except:
         return None, None, None
     conv = firstConv
     updatedConvID = request.POST.get('conv')
-
+    if request.method == 'POST':
+        if "sendMessage" in request.POST:
+            sendMsg(user, request)
     if updatedConvID != conv.id:
         try:
             conv = user.Conv_User.get(id=updatedConvID)
@@ -99,7 +103,6 @@ def showMessageList(user, request):
             conv = firstConv
 
     latest_message_list = conv.Messages.all().order_by('Date')
-    sendMsg(user, request)
 
     return latest_message_list, conv_list, conv
 
