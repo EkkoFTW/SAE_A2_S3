@@ -1,4 +1,9 @@
 
 html {
-    color: blue;
+    color: black;
+}
+
+.msgList {
+    overflow: auto;
+    height: 67vh;
 }

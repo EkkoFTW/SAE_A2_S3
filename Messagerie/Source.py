@@ -17,7 +17,7 @@ def auto_login(Sessionid, Userid):
         print("Nop")
         return -1
     user = Users.objects.get(email=Userid)
-    if type(user) is None:
+    if user is None:
         print("userid dosn't exist")
         print("")
         return -1
@@ -60,7 +60,6 @@ def sendMsg(user, request):
         print("Conv does not exist")
 
 def showMessageList(user, request):
-
     conv_list = user.Conv_User.all()
     firstConv = conv_list[0]
     conv = firstConv
@@ -72,7 +71,7 @@ def showMessageList(user, request):
         except:
             conv = firstConv
 
-    latest_message_list = conv.Messages.all().order_by('-Date')[:4]
+    latest_message_list = conv.Messages.all().order_by('Date')
     sendMsg(user, request)
 
     return latest_message_list, conv_list, conv
