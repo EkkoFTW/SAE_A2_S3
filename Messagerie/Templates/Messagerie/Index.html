@@ -16,7 +16,7 @@
         <p>No Message are available.</p>
 {% endif %}
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% if conv_list %}
     <ul>
@@ -29,18 +29,12 @@
         <p>No conv are available.</p>
     {% endif %}
 
-    <fieldset>
-        <textarea name="text" id="toSend"></textarea>
-        <label for="toSend"></label>
-        <br>
-    </fieldset>
-    <button type="submit" name="action" value="message"> Send </button>
-</form>
 
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-   {{ form.as_p }}
-  <button type="submit" name="action" value="image">Upload</button>
+    <textarea name="text" id="toSend"></textarea>
+    <label for="toSend"></label>
+    {{ fileform.as_p }}
+    <br>
+    <button type="submit" name="action" value="message"> Send </button>
 </form>
 
 {% if img_obj %}

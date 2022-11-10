@@ -1,6 +1,13 @@
 import Messagerie.models
 from django.contrib.auth import *
 from .models import *
+from .forms import *
+
+def handle_uploaded_file(f, name):
+    with open("media\\files\\"+name, 'wb+') as destination:
+        for chunk in f.chunks():
+            destination.write(chunk)
+
 def login(Username, Passwd):
     print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
     user = authenticate(username=Username, password=Passwd)
@@ -17,7 +24,7 @@ def auto_login(Sessionid, Userid):
         print("Nop")
         return -1
     user = Users.objects.get(email=Userid)
-    if type(user) is None:
+    if user is None:
         print("userid dosn't exist")
         print("")
         return -1
@@ -50,19 +57,39 @@ def addUserToConv(Conv, user):
 def sendMsg(user, request):
     conv = request.POST.get('conv')
     text = request.POST.get('text')
+    fileform = FileForm(request.POST, request.FILES)
     try:
+        if conv is not None and fileform.is_valid():
+            handle_uploaded_file(request.FILES['file'], request.POST['title'])
+            file = File()
+            file.file = request.FILES['file']
+            file.title = request.POST['title']
+            file.save()
+            conv = Conv_User.objects.get(id=conv)
+            if text is None:
+                toAdd = Message(Sender=user, Text="", Date=timezone.now())
+                toAdd.save()
+                toAdd.files.add(file)
+                conv.Messages.add(toAdd)
+            else:
+                toAdd = Message(Sender=user, Text=text, Date=timezone.now())
+                toAdd.save()
+                toAdd.files.add(file)
+                conv.Messages.add(toAdd)
+    except:
         if text is not None and conv is not None:
             conv = Conv_User.objects.get(id=conv)
             toAdd = Message(Sender=user, Text=text, Date=timezone.now())
             toAdd.save()
             conv.Messages.add(toAdd)
-    except:
-        print("Conv does not exist")
 
 def showMessageList(user, request):
 
     conv_list = user.Conv_User.all()
-    firstConv = conv_list[0]
+    try:
+        firstConv = conv_list[0]
+    except:
+        return None, None, None
     conv = firstConv
     updatedConvID = request.POST.get('conv')
 
@@ -96,11 +123,6 @@ def msgCleaner():
     for conv in convList:
         for msg in conv.Messages.all():
             tabMsg[msg.id]=True
-
     for msg in msgList:
         if tabMsg2[msg.id] == False:
             msg.delete()
-
-
-
-

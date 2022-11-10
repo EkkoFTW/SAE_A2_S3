@@ -22,14 +22,12 @@ def index(request):
             return redirect('log')
     except:
         return redirect('log')
-
-    #createConv(request, user)
-    #deleteConv(44)
-    #deleteConv(43)
-    #msgCleaner()
     latest_message_list, conv_list, conv = showMessageList(user, request)
+    fileform = FileForm()
+
     template = loader.get_template('Messagerie/Index.html')
-    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, }
+
+    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform}
 
     #Users.objects.create_user(username_value="test2", email="test2@test2.fr", password="test2", PP="")
 
@@ -77,7 +75,6 @@ def image_upload_view(request):
     fileform = FileForm()
     if request.method == 'POST':
         if "image" in request.POST:
-            print("image")
             imageform = ImageForm(request.POST, request.FILES)
             fileform = FileForm()
             if imageform.is_valid():
@@ -86,19 +83,18 @@ def image_upload_view(request):
                 img_obj = imageform.instance
                 return render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform , 'img_obj': img_obj})
         elif "file" in request.POST:
-            print("file")
+            print(request.POST)
+            print(request.FILES)
             imageform = ImageForm()
             fileform = FileForm(request.POST, request.FILES)
             if fileform.is_valid():
-                handle_uploaded_file(request.FILES['file'])
+                print(request.POST)
+                print(request.FILES)
+                handle_uploaded_file(request.FILES['file'], request.POST['title'])
         else:
             print("No type")
     else:
         imageform = ImageForm()
         fileform = FileForm()
-        response = HttpResponse()
-        response.status_code = 200
-        response.content = loader.get_template("Messagerie/Upload.html")
-        response.headers = {'imageform': imageform, 'fileform': fileform}
 
     return HttpResponse(render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform}))

@@ -52,8 +52,8 @@ class Conv_Admin(Conv_User):
 
 
 class File(models.Model):
-    title = models.CharField(max_length=200)
-    file = models.FileField(upload_to='files')
+    title = models.CharField(max_length=200, blank=True)
+    file = models.FileField(upload_to='files', blank=True)
 
 class Image(models.Model):
     title = models.CharField(max_length=200)
@@ -67,7 +67,7 @@ class Message(models.Model):
     Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
     Text = models.CharField(max_length=5000)
     Date = models.DateTimeField()
-    images = models.ManyToManyField(Image)
+    files = models.ManyToManyField(File)
 
     def __str__(self):
         return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
