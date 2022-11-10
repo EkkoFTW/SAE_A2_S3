@@ -84,7 +84,6 @@ def sendMsg(user, request):
             conv.Messages.add(toAdd)
 
 def showMessageList(user, request):
-
     conv_list = user.Conv_User.all()
     try:
         firstConv = conv_list[0]
@@ -99,7 +98,7 @@ def showMessageList(user, request):
         except:
             conv = firstConv
 
-    latest_message_list = conv.Messages.all().order_by('-Date')[:4]
+    latest_message_list = conv.Messages.all().order_by('Date')
     sendMsg(user, request)
 
     return latest_message_list, conv_list, conv
