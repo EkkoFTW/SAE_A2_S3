@@ -10,6 +10,7 @@ from django.conf import settings
 from django.shortcuts import redirect
 
 def index(request):
+
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:
@@ -17,15 +18,15 @@ def index(request):
             return redirect('log')
     except:
         return redirect('log')
+    if request.method:
+        if "createConv" in request.POST:
+            createConv(request, user)
     latest_message_list, conv_list, conv = showMessageList(user, request)
     fileform = FileForm()
-
     template = loader.get_template('Messagerie/Index.html')
 
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform}
-
     #Users.objects.create_user(username_value="test2", email="test2@test2.fr", password="test2", PP="")
-
     return HttpResponse(template.render(context, request))
 
 def log(request):

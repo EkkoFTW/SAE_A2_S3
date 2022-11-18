@@ -2,6 +2,15 @@ import Messagerie.models
 from django.contrib.auth import *
 from .models import *
 from .forms import *
+from enum import Enum
+class formsToInt(Enum):
+    deleteMessage = 0
+    editMessage = 1
+    replyMessage = 2
+    selectConv = 3
+    deleteConv = 4
+    sendMessage = 5
+
 
 def handle_uploaded_file(f, name):
     with open("media\\files\\"+name, 'wb+') as destination:
@@ -55,10 +64,11 @@ def addUserToConv(Conv, user):
 
 
 def sendMsg(user, request):
-    conv = request.POST.get('conv')
     text = request.POST.get('text')
     fileform = FileForm(request.POST, request.FILES)
     try:
+        conv = request.session["actualConv"]
+        print(conv)
         if conv is not None and fileform.is_valid():
             handle_uploaded_file(request.FILES['file'], request.POST['title'])
             file = File()
@@ -85,22 +95,39 @@ def sendMsg(user, request):
 
 def showMessageList(user, request):
     conv_list = user.Conv_User.all()
-    print(conv_list)
-    print(conv_list.filter(id=1))
     try:
         firstConv = conv_list[0]
     except:
         return None, None, None
     conv = firstConv
-    updatedConvID = request.POST.get('conv')
+    try:
+        OldConv = conv_list.get(id=request.session["actualConv"])
+        conv = OldConv
+        print(conv)
+    except:
+        pass
     if request.method == 'POST':
-        if "sendMessage" in request.POST:
+        if "selectConv" in request.POST:
+            print("Conv selected : " + request.POST.get("selectConv"))
+            updatedConvID = request.POST.get('selectConv')
+            if updatedConvID != conv.id:
+                try:
+                    request.session['actualConv'] = updatedConvID
+                    conv = user.Conv_User.get(id=updatedConvID)
+                except:
+                    conv = firstConv
+        elif "sendMessage" in request.POST:
             sendMsg(user, request)
-    if updatedConvID != conv.id:
-        try:
-            conv = user.Conv_User.get(id=updatedConvID)
-        except:
-            conv = firstConv
+        elif "deleteConv" in request.POST:
+            deleteConv(request.POST.get('deleteConv'))
+            if request.session['actualConv'] == request.POST.get('deleteConv'):
+                conv_list = user.Conv_User.all()
+                try:
+                    request.session['actualSession'] = conv_list[0]
+                    conv = conv_list[0]
+                except:
+                    return None, None, None
+
 
     latest_message_list = conv.Messages.all().order_by('Date')
 
@@ -112,7 +139,6 @@ def deleteConv(IDconv):
         if conv is None:
             return -1
         else:
-            #conv.Messages.all().delete()
             conv.delete()
     except:
         print("Conv does not exist")

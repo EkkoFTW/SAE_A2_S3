@@ -1,9 +1,31 @@
-
 html {
-    color: black;
+    color: #dcddde;
+    background: #36393f;
+}
+
+#toSend {
+    background: #40444b;
+    width:100%;
 }
 
 .msgList {
     overflow: auto;
     height: 67vh;
+}
+
+.container{
+    display:flex;
+    align-content: space-between;
+}
+
+.sub-container-left{
+    width: 20vw;
+}
+
+.sub-container-main{
+    width: 60vw;
+}
+
+.sub-container-right{
+    width: 20vw;
 }
