@@ -11,6 +11,11 @@
                 <button type="submit" name="createConv" value=1> Create a conv </button>
             </form>
             {% if conv_list %}
+            <form method="post">
+                <label for="userToAdd">E-Mail</label>
+                <input type="text" id="userToAdd" name="userToAdd">
+                <button type="submit" name="addToConv">Ajouter</button>
+            </form>
             <ul>
                 {% for conv in conv_list %}
                 <form method="post">
@@ -32,13 +37,13 @@
                 {% if latest_message_list %}
                 <ul>{% for Message in latest_message_list %}
                     <li><p>{{Message.Date}}</p>
-                        <form action="post">
+                        <form method="post">
                             {% csrf_token %}
                             <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
                             <p> {{ Message.Text }} </p>
-                            <button type="submit" name="deleteMessage"> Delete </button>
-                            <button type="submit" name="editMessage"> Edit </button>
-                            <button type="submit" name="replyMessage"> Reply </button>
+                            <button type="submit" name="deleteMessage" value="{{ Message.id }}"> Delete </button>
+                            <button type="submit" name="editMessage" value="{{ Message.id }}"> Edit </button>
+                            <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>
                         </form>
                         <br>
                         {% endfor %}
@@ -61,6 +66,18 @@
             {% endif %}
         </div>
         <div class="sub-container-right">
+            {% if list_user %}
+            <ul>
+                {% for user in list_user %}
+                    <label>{{ user.username_value }}</label>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" name="kickUser" value="{{ user.id }}"> Kick </button>
+                        <button type="submit" name="banUser" value="{{ user.id }}"> Ban </button>
+                    </form>
+                {% endfor %}
+            </ul>
+            {% endif %}
         </div>
     </div>
  </html>
