@@ -16,7 +16,7 @@
                 {% for conv in conv_list %}
                 <form method="post">
                     {% csrf_token %}
-                    <label>{{ conv.Name }}</label>
+                    <label> {{ conv.Name }} </label>
                     <button type="submit" name="selectConv" value="{{conv.id}}"> Select </button>
                     <button type="submit" name="deleteConv" value="{{conv.id}}"> Delete </button>
                     <br>
@@ -37,6 +37,9 @@
                             {% csrf_token %}
                             <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
                             <p> {{ Message.Text }} </p>
+                            {% for Image in Message.files.all %}
+                                <img class="aImg" src="{{ Image.file.url }}" alt="{{ Image.file }}">
+                            {% endfor %}
                             <button type="submit" name="deleteMessage" value="{{ Message.id }}"> Delete </button>
                             <button type="submit" name="editMessage" value="{{ Message.id }}"> Edit </button>
                             <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>

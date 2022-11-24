@@ -52,15 +52,7 @@ class Conv_Admin(Conv_User):
 
 
 class File(models.Model):
-    title = models.CharField(max_length=200, blank=True)
     file = models.FileField(upload_to='files', blank=True)
-
-class Image(models.Model):
-    title = models.CharField(max_length=200)
-    image = models.ImageField(upload_to='images')
-
-    def __str__(self):
-        return self.title
 
 class Message(models.Model):
     Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")

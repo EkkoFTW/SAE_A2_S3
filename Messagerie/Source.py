@@ -48,8 +48,10 @@ def auto_login(Sessionid, Userid):
 def createConv(request, user, convName):
     if convName == "":
         newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
-    else:
+    elif convName.__len__() < 25:
         newConv = Conv_User(privateKey=1, publicKey=1, Name=convName)
+    else:
+        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName[:24])
     newConv.save()
     user.Conv_User.add(newConv)
     user.save()
@@ -94,14 +96,15 @@ def sendMsg(user, request):
     print("Actual session to send message : ", end="")
     print(request.session["actualConv"])
     text = request.POST.get('text')
-    fileform = FileForm(request.POST, request.FILES)
+
     try:
+        if False and text.__len__() > 5000:
+            text = text[:5000]
+        fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():
-            handle_uploaded_file(request.FILES['file'], request.POST['title'])
             file = File()
             file.file = request.FILES['file']
-            file.title = request.POST['title']
             file.save()
             conv = Conv_User.objects.get(id=conv)
             if text is None:
