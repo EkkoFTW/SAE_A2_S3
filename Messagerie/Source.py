@@ -55,16 +55,28 @@ def createConv(request, user):
     request.session['actualConv'] = newConv.id
     return newConv
 
+def kick(request, user_id):
+    try:
+        if(user_id):
+            conv = Conv_User.objects.get(id=request.session["actualConv"])
+            conv.Users.get(id=user_id).delete()
+    except:
+        return -1
+
+
 
 def addUserToConv(Conv, user):
     for usr in user:
-        updateConv = Conv.Users.add(usr)
+        user_to_add = Users.objects.get(email=usr)
+        updateConv = Conv.Users.add(user_to_add)
         updateConv.save()
-        updateUsr = usr.Conv_User.add(user)
+        updateUsr = user_to_add.Conv_User.add(Conv)
         updateUsr.save()
 
 
 def sendMsg(user, request):
+    print("Actual session to send message : ", end="")
+    print(request.session["actualConv"])
     text = request.POST.get('text')
     fileform = FileForm(request.POST, request.FILES)
     try:
@@ -131,10 +143,12 @@ def showMessageList(user, request):
                     request.session['actualConv'] = conv_list[0].id
                     conv = conv_list[0]
                 except:
-                    return None, None, None, None
+                    return None, None, None
+        elif "addToConv" in request.POST:
+            addUserToConv(conv, request.POST.get("userToAdd"))
+
         elif "deleteMessage" in request.POST:
             deleteMsg(request.POST.get('deleteMessage'))
-
 
     latest_message_list = conv.Messages.all().order_by('Date')
     return latest_message_list, conv_list, conv, conv.Users.all()
