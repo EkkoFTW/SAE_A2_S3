@@ -52,7 +52,7 @@ def createConv(request, user):
     user.save()
     newConv.Users.add(user)
     newConv.save()
-    request.session["actualConv"] = newConv.id
+    request.session['actualConv'] = newConv.id
     return newConv
 
 def kick(request, user_id):
@@ -110,16 +110,22 @@ def showMessageList(user, request):
     try:
         firstConv = conv_list[0]
     except:
-        return None, None, None
+        return None, None, None, None
+
     conv = firstConv
     try:
-        OldConv = conv_list.get(id=request.session["actualConv"])
+        OldConv = conv_list.get(id=request.session['actualConv'])
         conv = OldConv
     except:
         pass
+
+    try:
+        request.session['actualConv']
+    except:
+        request.session['actualConv'] = conv.id
+
     if request.method == 'POST':
         if "selectConv" in request.POST:
-            print("Conv selected : " + request.POST.get("selectConv"))
             updatedConvID = request.POST.get('selectConv')
             if updatedConvID != conv.id:
                 try:
@@ -135,15 +141,17 @@ def showMessageList(user, request):
                 conv_list = user.Conv_User.all()
                 try:
                     request.session['actualConv'] = conv_list[0].id
-                    conv = user.Conv_User.get(id=conv_list[0].id)
+                    conv = conv_list[0]
                 except:
                     return None, None, None
         elif "addToConv" in request.POST:
             addUserToConv(conv, request.POST.get("userToAdd"))
 
-    latest_message_list = conv.Messages.all().order_by('Date')
+        elif "deleteMessage" in request.POST:
+            deleteMsg(request.POST.get('deleteMessage'))
 
-    return latest_message_list, conv_list, conv
+    latest_message_list = conv.Messages.all().order_by('Date')
+    return latest_message_list, conv_list, conv, conv.Users.all()
 
 def deleteConv(IDconv):
     try:
@@ -167,3 +175,10 @@ def msgCleaner():
     for msg in msgList:
         if tabMsg2[msg.id] == False:
             msg.delete()
+
+def deleteMsg(msgID):
+    print(msgID)
+    try:
+        Message.objects.get(pk=msgID).delete()
+    except:
+        print("msg does not exist")
