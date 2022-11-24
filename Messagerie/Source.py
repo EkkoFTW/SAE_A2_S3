@@ -103,7 +103,6 @@ def showMessageList(user, request):
     try:
         OldConv = conv_list.get(id=request.session["actualConv"])
         conv = OldConv
-        print(conv)
     except:
         pass
     if request.method == 'POST':
@@ -123,7 +122,7 @@ def showMessageList(user, request):
             if request.session['actualConv'] == request.POST.get('deleteConv'):
                 conv_list = user.Conv_User.all()
                 try:
-                    request.session['actualSession'] = conv_list[0]
+                    request.session['actualSession'] = conv_list[0].id
                     conv = conv_list[0]
                 except:
                     return None, None, None
@@ -139,6 +138,7 @@ def deleteConv(IDconv):
         if conv is None:
             return -1
         else:
+            conv.Messages.all().delete()
             conv.delete()
     except:
         print("Conv does not exist")
