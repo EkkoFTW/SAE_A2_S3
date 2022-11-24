@@ -10,7 +10,6 @@ from django.conf import settings
 from django.shortcuts import redirect
 
 def index(request):
-
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:

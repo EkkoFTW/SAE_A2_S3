@@ -52,23 +52,35 @@ def createConv(request, user):
     user.save()
     newConv.Users.add(user)
     newConv.save()
+    request.session["actualConv"] = newConv.id
     return newConv
+
+def kick(request, user_id):
+    try:
+        if(user_id):
+            conv = Conv_User.objects.get(id=request.session["actualConv"])
+            conv.Users.get(id=user_id).delete()
+    except:
+        return -1
+
 
 
 def addUserToConv(Conv, user):
     for usr in user:
-        updateConv = Conv.Users.add(usr)
+        user_to_add = Users.objects.get(email=usr)
+        updateConv = Conv.Users.add(user_to_add)
         updateConv.save()
-        updateUsr = usr.Conv_User.add(user)
+        updateUsr = user_to_add.Conv_User.add(Conv)
         updateUsr.save()
 
 
 def sendMsg(user, request):
+    print("Actual session to send message : ", end="")
+    print(request.session["actualConv"])
     text = request.POST.get('text')
     fileform = FileForm(request.POST, request.FILES)
     try:
         conv = request.session["actualConv"]
-        print(conv)
         if conv is not None and fileform.is_valid():
             handle_uploaded_file(request.FILES['file'], request.POST['title'])
             file = File()
@@ -122,11 +134,12 @@ def showMessageList(user, request):
             if request.session['actualConv'] == request.POST.get('deleteConv'):
                 conv_list = user.Conv_User.all()
                 try:
-                    request.session['actualSession'] = conv_list[0].id
-                    conv = conv_list[0]
+                    request.session['actualConv'] = conv_list[0].id
+                    conv = user.Conv_User.get(id=conv_list[0].id)
                 except:
                     return None, None, None
-
+        elif "addToConv" in request.POST:
+            addUserToConv(conv, request.POST.get("userToAdd"))
 
     latest_message_list = conv.Messages.all().order_by('Date')
 
