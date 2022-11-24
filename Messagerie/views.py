@@ -19,9 +19,8 @@ def index(request):
         return redirect('log')
     if request.method:
         if "createConv" in request.POST:
-            createConv(request, user)
+            createConv(request, user, request.POST.get('convName'))
     latest_message_list, conv_list, conv, list_user = showMessageList(user, request)
-
     fileform = FileForm()
     template = loader.get_template('Messagerie/Index.html')
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}

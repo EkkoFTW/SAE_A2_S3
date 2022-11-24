@@ -45,8 +45,11 @@ def auto_login(Sessionid, Userid):
         print("Wrong SessionID for " + str(user))
         return -1
 
-def createConv(request, user):
-    newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
+def createConv(request, user, convName):
+    if convName == "":
+        newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
+    else:
+        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName)
     newConv.save()
     user.Conv_User.add(newConv)
     user.save()
@@ -55,24 +58,37 @@ def createConv(request, user):
     request.session['actualConv'] = newConv.id
     return newConv
 
-def kick(request, user_id):
+def kick(conv, user_id):
     try:
         if(user_id):
-            conv = Conv_User.objects.get(id=request.session["actualConv"])
-            conv.Users.get(id=user_id).delete()
+            rm = conv.Users.get(id=user_id)
+            conv.Users.remove(rm)
+            rm.Conv_User.remove(conv)
+            if not conv.Users.all().exists():
+                deleteConv(conv)
+            conv.Name = ""
     except:
-        return -1
+        return
 
-
+def convCleaner():
+    for conv in Conv_User.objects.all():
+        if not conv.Users.all().exists():
+            deleteConv(conv)
 
 def addUserToConv(Conv, user):
-    for usr in user:
-        user_to_add = Users.objects.get(email=usr)
-        updateConv = Conv.Users.add(user_to_add)
-        updateConv.save()
-        updateUsr = user_to_add.Conv_User.add(Conv)
-        updateUsr.save()
+    try:
+        user_to_add = Users.objects.get(email=user)
+        Conv.Users.add(user_to_add)
+        user_to_add.Conv_User.add(Conv)
+    except:
+        return
 
+def addUserObjToConv(Conv, user):
+    try:
+        Conv.Users.add(user)
+        user.Conv_User.add(Conv)
+    except:
+        return
 
 def sendMsg(user, request):
     print("Actual session to send message : ", end="")
@@ -134,28 +150,62 @@ def showMessageList(user, request):
                 except:
                     conv = firstConv
         elif "sendMessage" in request.POST:
-            sendMsg(user, request)
+            try:
+                sendMsg(user, request)
+            except:
+                pass
         elif "deleteConv" in request.POST:
-            deleteConv(request.POST.get('deleteConv'))
+            deleteConvID(request.POST.get('deleteConv'))
             if request.session['actualConv'] == request.POST.get('deleteConv'):
                 conv_list = user.Conv_User.all()
                 try:
                     request.session['actualConv'] = conv_list[0].id
                     conv = conv_list[0]
                 except:
-                    return None, None, None
+                    return None, None, None, None
         elif "addToConv" in request.POST:
             addUserToConv(conv, request.POST.get("userToAdd"))
 
         elif "deleteMessage" in request.POST:
             deleteMsg(request.POST.get('deleteMessage'))
-
+        elif "kickUser" in request.POST:
+            kick(conv,request.POST.get('kickUser'))
+        elif "whisper" in request.POST:
+            whisper(request.POST.get('whisper'), user, request, conv)
     latest_message_list = conv.Messages.all().order_by('Date')
+
     return latest_message_list, conv_list, conv, conv.Users.all()
 
-def deleteConv(IDconv):
+
+def whisper(Receiver, Sender, request, baseConv):
+    list = Sender.Conv_User.all()
+    print(list)
+    Receiver = Users.objects.get(pk=Receiver)
+    found = False
+    for conv in list:
+        if conv.Users.all().count() == 2:
+            request.session['actualConv'] = conv.id
+            baseConv = conv
+            found = True
+    if not found:
+        addUserObjToConv(createConv(request, Sender, Sender.username_value + " " + Receiver.username_value), Receiver)
+
+
+
+def deleteConvID(IDconv):
     try:
         conv = Conv_User.objects.get(pk=IDconv)
+        if conv is None:
+            return -1
+        else:
+            conv.Messages.all().delete()
+            conv.delete()
+    except:
+        print("Conv does not exist")
+
+
+def deleteConv(conv):
+    try:
         if conv is None:
             return -1
         else:

@@ -8,14 +8,10 @@
         <div class="sub-container-left">
             <form method="post">
                 {% csrf_token %}
+                <input type="text" name="convName">
                 <button type="submit" name="createConv" value=1> Create a conv </button>
             </form>
             {% if conv_list %}
-            <form method="post">
-                <label for="userToAdd">E-Mail</label>
-                <input type="text" id="userToAdd" name="userToAdd">
-                <button type="submit" name="addToConv">Ajouter</button>
-            </form>
             <ul>
                 {% for conv in conv_list %}
                 <form method="post">
@@ -32,7 +28,7 @@
             {% endif %}
         </div>
         <div class="sub-container-main">
-            <p>ID_Conv_User: {{conv_shown}} </p>
+            <p>{{ conv_shown.Name }} </p>
             <div class="msgList">
                 {% if latest_message_list %}
                 <ul>{% for Message in latest_message_list %}
@@ -66,6 +62,12 @@
             {% endif %}
         </div>
         <div class="sub-container-right">
+            <form method="post">
+                {% csrf_token %}
+                <label for="userToAdd">E-Mail</label>
+                <input type="text" id="userToAdd" name="userToAdd">
+                <button type="submit" name="addToConv">Ajouter</button>
+            </form>
             {% if list_user %}
             <ul>
                 {% for user in list_user %}
@@ -74,6 +76,7 @@
                         {% csrf_token %}
                         <button type="submit" name="kickUser" value="{{ user.id }}"> Kick </button>
                         <button type="submit" name="banUser" value="{{ user.id }}"> Ban </button>
+                        <button type="submit" name="whisper" value="{{ user.id }}"> MP </button>
                     </form>
                 {% endfor %}
             </ul>
