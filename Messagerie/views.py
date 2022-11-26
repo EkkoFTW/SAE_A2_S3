@@ -10,6 +10,7 @@ from django.conf import settings
 from django.shortcuts import redirect
 
 def index(request):
+    perf = PerformanceProfiler("index")
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:

@@ -3,6 +3,8 @@ from django.contrib.auth import *
 from .models import *
 from .forms import *
 from enum import Enum
+from .PerformanceProfiler import *
+
 class formsToInt(Enum):
     deleteMessage = 0
     editMessage = 1
@@ -13,12 +15,14 @@ class formsToInt(Enum):
 
 
 def handle_uploaded_file(f, name):
+    perf = PerformanceProfiler("handle_uploaded_file")
     with open("media\\files\\"+name, 'wb+') as destination:
         for chunk in f.chunks():
             destination.write(chunk)
 
 def login(Username, Passwd):
-    print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
+    perf = PerformanceProfiler("login")
+    #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
     user = authenticate(username=Username, password=Passwd)
     if user is not None:
         print('connection: succeed ---> ', end="")
@@ -28,24 +32,26 @@ def login(Username, Passwd):
         return -1
 
 def auto_login(Sessionid, Userid):
-    print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
+    perf = PerformanceProfiler("auto_login")
+    #print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
     if Sessionid is None or Userid is None:
-        print("Nop")
+        #print("Nop")
         return -1
     user = Users.objects.get(email=Userid)
     if user is None:
-        print("userid dosn't exist")
-        print("")
+        #print("userid dosn't exist")
+        #print("")
         return -1
     sessionid = user.sessionid
     if sessionid == Sessionid:
-        print("Connected to " + str(user))
+        #print("Connected to " + str(user))
         return user
     else:
-        print("Wrong SessionID for " + str(user))
+        #print("Wrong SessionID for " + str(user))
         return -1
 
 def createConv(request, user, convName):
+    perf = PerformanceProfiler("createConv")
     if convName == "":
         newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
     elif convName.__len__() < 25:
@@ -61,6 +67,7 @@ def createConv(request, user, convName):
     return newConv
 
 def kick(conv, user_id):
+    perf = PerformanceProfiler("kick")
     try:
         if(user_id):
             rm = conv.Users.get(id=user_id)
@@ -73,11 +80,13 @@ def kick(conv, user_id):
         return
 
 def convCleaner():
+    perf = PerformanceProfiler("convCleaner")
     for conv in Conv_User.objects.all():
         if not conv.Users.all().exists():
             deleteConv(conv)
 
 def addUserToConv(Conv, user):
+    perf = PerformanceProfiler("addUserToConv")
     try:
         user_to_add = Users.objects.get(email=user)
         Conv.Users.add(user_to_add)
@@ -86,6 +95,7 @@ def addUserToConv(Conv, user):
         return
 
 def addUserObjToConv(Conv, user):
+    perf = PerformanceProfiler("addUserObjToConv")
     try:
         Conv.Users.add(user)
         user.Conv_User.add(Conv)
@@ -93,8 +103,9 @@ def addUserObjToConv(Conv, user):
         return
 
 def sendMsg(user, request):
-    print("Actual session to send message : ", end="")
-    print(request.session["actualConv"])
+    perf = PerformanceProfiler("sendMsg")
+    #print("Actual session to send message : ", end="")
+    #print(request.session["actualConv"])
     text = request.POST.get('text')
 
     try:
@@ -125,6 +136,7 @@ def sendMsg(user, request):
             conv.Messages.add(toAdd)
 
 def showMessageList(user, request):
+    perf = PerformanceProfiler("showMessageList")
     conv_list = user.Conv_User.all()
     try:
         firstConv = conv_list[0]
@@ -181,6 +193,7 @@ def showMessageList(user, request):
 
 
 def whisper(Receiver, Sender, request, baseConv):
+    perf = PerformanceProfiler("whisper")
     list = Sender.Conv_User.all()
     print(list)
     Receiver = Users.objects.get(pk=Receiver)
@@ -196,6 +209,7 @@ def whisper(Receiver, Sender, request, baseConv):
 
 
 def deleteConvID(IDconv):
+    perf = PerformanceProfiler("deleteConvID")
     try:
         conv = Conv_User.objects.get(pk=IDconv)
         if conv is None:
@@ -208,6 +222,7 @@ def deleteConvID(IDconv):
 
 
 def deleteConv(conv):
+    perf = PerformanceProfiler("deleteConv")
     try:
         if conv is None:
             return -1
@@ -218,6 +233,7 @@ def deleteConv(conv):
         print("Conv does not exist")
 
 def msgCleaner():
+    perf = PerformanceProfiler("msgCleaner")
     msgList = Message.objects.all()
     convList = Conv_User.objects.all()
     tabMsg = [False]*(((Message.objects.order_by('-id')[:1])[0].id)+1)
@@ -230,6 +246,7 @@ def msgCleaner():
             msg.delete()
 
 def deleteMsg(msgID):
+    perf = PerformanceProfiler("deleteMsg")
     print(msgID)
     try:
         Message.objects.get(pk=msgID).delete()
