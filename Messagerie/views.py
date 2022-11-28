@@ -3,13 +3,14 @@ from django.http import HttpRequest
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
 
-from .forms import ImageForm, FileForm
+from .forms import FileForm
 from .models import *
 from .Source import *
 from django.conf import settings
 from django.shortcuts import redirect
 
 def index(request):
+    perf = PerformanceProfiler("index")
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:
@@ -19,13 +20,16 @@ def index(request):
         return redirect('log')
     if request.method:
         if "createConv" in request.POST:
-            createConv(request, user)
+            createConv(request, user, request.POST.get('convName'))
     latest_message_list, conv_list, conv, list_user = showMessageList(user, request)
-
     fileform = FileForm()
     template = loader.get_template('Messagerie/Index.html')
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
 
+    if conv_list is not None:
+        for i in conv_list:
+            if(str(i.Name).__len__() > 12):
+                i.Name = i.Name[:10]+"..."
 
     #Users.objects.create_user(username_value="test2", email="test2@test2.fr", password="test2", PP="")
     return HttpResponse(template.render(context, request))
@@ -63,34 +67,3 @@ def log(request):
         print("Connected")
         return redirect('index')
     return HttpResponse(template.render(context, request))
-
-
-def image_upload_view(request):
-    """Process images uploaded by users"""
-    print("image_upload_view")
-    imageform = ImageForm()
-    fileform = FileForm()
-    if request.method == 'POST':
-        if "image" in request.POST:
-            imageform = ImageForm(request.POST, request.FILES)
-            fileform = FileForm()
-            if imageform.is_valid():
-                imageform.save()
-                img_obj = imageform.instance
-                return render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform , 'img_obj': img_obj})
-        elif "file" in request.POST:
-            print(request.POST)
-            print(request.FILES)
-            imageform = ImageForm()
-            fileform = FileForm(request.POST, request.FILES)
-            if fileform.is_valid():
-                print(request.POST)
-                print(request.FILES)
-                handle_uploaded_file(request.FILES['file'], request.POST['title'])
-        else:
-            print("No type")
-    else:
-        imageform = ImageForm()
-        fileform = FileForm()
-
-    return HttpResponse(render(request, 'Messagerie/Upload.html', {'imageform': imageform, 'fileform' : fileform}))
