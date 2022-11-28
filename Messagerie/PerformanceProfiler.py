@@ -5,6 +5,8 @@ class PerformanceProfiler:
     timer = None
     nbRank = -1
 
+    def space(self):
+        return str("  "*self.nbRank)
     def __init__(self, Name):
         self.Name = Name
         self.timer = time.time()

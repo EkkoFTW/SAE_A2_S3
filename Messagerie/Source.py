@@ -114,19 +114,27 @@ def sendMsg(user, request):
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():
-            file = File()
-            file.file = request.FILES['file']
-            file.save()
+            Files = request.FILES.getlist('file')
             conv = Conv_User.objects.get(id=conv)
+            i = 0
+            files = []
+            for f in Files:
+                toAdd = File()
+                toAdd.file = f
+                files.append(toAdd)
+                files[i].save()
+                i += 1
             if text is None:
                 toAdd = Message(Sender=user, Text="", Date=timezone.now())
                 toAdd.save()
-                toAdd.files.add(file)
+                for file in files:
+                    toAdd.files.add(file)
                 conv.Messages.add(toAdd)
             else:
                 toAdd = Message(Sender=user, Text=text, Date=timezone.now())
                 toAdd.save()
-                toAdd.files.add(file)
+                for file in files:
+                    toAdd.files.add(file)
                 conv.Messages.add(toAdd)
     except:
         if text is not None and conv is not None:
@@ -182,7 +190,7 @@ def showMessageList(user, request):
             addUserToConv(conv, request.POST.get("userToAdd"))
 
         elif "deleteMessage" in request.POST:
-            deleteMsg(request.POST.get('deleteMessage'))
+            deleteMsgID(request.POST.get('deleteMessage'))
         elif "kickUser" in request.POST:
             kick(conv,request.POST.get('kickUser'))
         elif "whisper" in request.POST:
@@ -215,7 +223,8 @@ def deleteConvID(IDconv):
         if conv is None:
             return -1
         else:
-            conv.Messages.all().delete()
+            for msg in conv.Messages.all():
+                deleteMsg(msg)
             conv.delete()
     except:
         print("Conv does not exist")
@@ -227,7 +236,8 @@ def deleteConv(conv):
         if conv is None:
             return -1
         else:
-            conv.Messages.all().delete()
+            for msg in conv.Messages.all():
+                deleteMsg(msg)
             conv.delete()
     except:
         print("Conv does not exist")
@@ -243,12 +253,21 @@ def msgCleaner():
             tabMsg[msg.id]=True
     for msg in msgList:
         if tabMsg2[msg.id] == False:
-            msg.delete()
+            deleteMsg(msg)
 
-def deleteMsg(msgID):
-    perf = PerformanceProfiler("deleteMsg")
-    print(msgID)
+def deleteMsgID(msgID):
+    perf = PerformanceProfiler("deleteMsgID")
     try:
-        Message.objects.get(pk=msgID).delete()
+        obj = Message.objects.get(pk=msgID)
+        obj.files.all().delete()
+        obj.delete()
     except:
-        print("msg does not exist")
+        print(perf.space() + "msg does not exist")
+
+def deleteMsg(msg):
+    perf = PerformanceProfiler("deleteMsg")
+    try:
+        msg.files.all().delete()
+        msg.delete()
+    except:
+        print(perf.space() + "msg does not exist")

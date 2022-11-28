@@ -4,13 +4,44 @@ html {
 }
 
 #toSend {
-    background: #40444b;
+    font-size: 1.2em;
     width:100%;
+    height: 100%;
+    border: None;
+    background-color: transparent;;
+    border-style: None;
+    border-color: transparent;
+    outline: None;
+    resize: None;
+    overflow-wrap: break-word;
+    overflow-y: auto;
+    color: #dcddde;
+}
+
+#msgSender-container {
+    background: #40444b;
+    width: 100%;
+    height: 1.2em;
+    padding: 0.6em;
+    padding-bottom: 0.8em;
+    border-radius: 15px;
+    display:flex;
+    align-content: space-between;
+}
+
+#msgSender-left{
+    width: 5%;
+}
+#msgSender-main{
+    width: 90%;
+}
+#msgSender-right{
+    width: 5%;
 }
 
 .msgList {
     overflow: auto;
-    height: 60vh;
+    height: 70vh;
 }
 
 .container{
@@ -35,4 +66,8 @@ html {
     max-width: 20vw;
     min-width: 1vw;
     min-height: 1vh ;
+}
+
+#id_file {
+    display: none;
 }

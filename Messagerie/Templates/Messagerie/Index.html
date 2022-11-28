@@ -53,10 +53,16 @@
             </div>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <textarea name="text" id="toSend"></textarea>
-                <label for="toSend"></label>
-                {{ fileform.as_p }}
-                <br>
+                <div id="msgSender-container">
+                    <div id="msgSender-left">
+                        {{ fileform }}
+                    </div>
+                    <div id="msgSender-main">
+                        <textarea name="text" id="toSend"></textarea>
+                    </div>
+                    <div id="msgSender-right">
+                    </div>
+                </div>
                 <button type="submit" name="sendMessage"> Send </button>
             </form>
             {% if img_obj %}
