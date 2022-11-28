@@ -3,9 +3,11 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from .managers import CustomUserManager
+from django.dispatch import receiver
+import os
 from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
-
+from Messagerie.PerformanceProfiler import PerformanceProfiler
 
 class Users(AbstractBaseUser, PermissionsMixin):
     username_value = models.CharField(max_length=30)
@@ -52,15 +54,12 @@ class Conv_Admin(Conv_User):
 
 
 class File(models.Model):
-    title = models.CharField(max_length=200, blank=True)
-    file = models.FileField(upload_to='files', blank=True)
-
-class Image(models.Model):
-    title = models.CharField(max_length=200)
-    image = models.ImageField(upload_to='images')
-
-    def __str__(self):
-        return self.title
+    file = models.FileField(upload_to='files', blank=True,)
+@receiver(models.signals.post_delete, sender=File)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)
 
 class Message(models.Model):
     Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")

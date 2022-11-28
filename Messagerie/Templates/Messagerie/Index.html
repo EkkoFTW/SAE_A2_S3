@@ -8,19 +8,15 @@
         <div class="sub-container-left">
             <form method="post">
                 {% csrf_token %}
+                <input type="text" name="convName">
                 <button type="submit" name="createConv" value=1> Create a conv </button>
             </form>
             {% if conv_list %}
-            <form method="post">
-                <label for="userToAdd">E-Mail</label>
-                <input type="text" id="userToAdd" name="userToAdd">
-                <button type="submit" name="addToConv">Ajouter</button>
-            </form>
             <ul>
                 {% for conv in conv_list %}
                 <form method="post">
                     {% csrf_token %}
-                    <label>{{ conv.Name }}</label>
+                    <label> {{ conv.Name }} </label>
                     <button type="submit" name="selectConv" value="{{conv.id}}"> Select </button>
                     <button type="submit" name="deleteConv" value="{{conv.id}}"> Delete </button>
                     <br>
@@ -32,7 +28,7 @@
             {% endif %}
         </div>
         <div class="sub-container-main">
-            <p>ID_Conv_User: {{conv_shown}} </p>
+            <p>{{ conv_shown.Name }} </p>
             <div class="msgList">
                 {% if latest_message_list %}
                 <ul>{% for Message in latest_message_list %}
@@ -41,6 +37,9 @@
                             {% csrf_token %}
                             <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
                             <p> {{ Message.Text }} </p>
+                            {% for Image in Message.files.all %}
+                                <img class="aImg" src="{{ Image.file.url }}" alt="{{ Image.file }}">
+                            {% endfor %}
                             <button type="submit" name="deleteMessage" value="{{ Message.id }}"> Delete </button>
                             <button type="submit" name="editMessage" value="{{ Message.id }}"> Edit </button>
                             <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>
@@ -54,10 +53,16 @@
             </div>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <textarea name="text" id="toSend"></textarea>
-                <label for="toSend"></label>
-                {{ fileform.as_p }}
-                <br>
+                <div id="msgSender-container">
+                    <div id="msgSender-left">
+                        {{ fileform }}
+                    </div>
+                    <div id="msgSender-main">
+                        <textarea name="text" id="toSend"></textarea>
+                    </div>
+                    <div id="msgSender-right">
+                    </div>
+                </div>
                 <button type="submit" name="sendMessage"> Send </button>
             </form>
             {% if img_obj %}
@@ -66,6 +71,12 @@
             {% endif %}
         </div>
         <div class="sub-container-right">
+            <form method="post">
+                {% csrf_token %}
+                <label for="userToAdd">E-Mail</label>
+                <input type="text" id="userToAdd" name="userToAdd">
+                <button type="submit" name="addToConv">Ajouter</button>
+            </form>
             {% if list_user %}
             <ul>
                 {% for user in list_user %}
@@ -74,6 +85,7 @@
                         {% csrf_token %}
                         <button type="submit" name="kickUser" value="{{ user.id }}"> Kick </button>
                         <button type="submit" name="banUser" value="{{ user.id }}"> Ban </button>
+                        <button type="submit" name="whisper" value="{{ user.id }}"> MP </button>
                     </form>
                 {% endfor %}
             </ul>
