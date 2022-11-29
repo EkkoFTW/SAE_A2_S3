@@ -71,12 +71,19 @@
             {% endif %}
         </div>
         <div class="sub-container-right">
-            <form method="post">
-                {% csrf_token %}
-                <label for="userToAdd">E-Mail</label>
-                <input type="text" id="userToAdd" name="userToAdd">
-                <button type="submit" name="addToConv">Ajouter</button>
-            </form>
+
+            {% if conv_list %}
+                <form method="post">
+                    {% csrf_token %}
+                    <label for="userToAdd">E-Mail</label>
+                    <input type="text" id="userToAdd" name="userToAdd">
+                    <button type="submit" name="addToConv">Ajouter</button>
+                </form>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="toFiles"><img src="/media/website/file.png" alt="Files"></button>
+                </form>
+            {% endif %}
             {% if list_user %}
             <ul>
                 {% for user in list_user %}

@@ -4,6 +4,7 @@ from .models import *
 from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
+from django.template import loader
 
 class formsToInt(Enum):
     deleteMessage = 0
@@ -20,6 +21,107 @@ def handle_uploaded_file(f, name):
         for chunk in f.chunks():
             destination.write(chunk)
 
+def handle_form_response(request, user, conv, firstConv):
+    all_param = []
+    if request.method == 'POST':
+        if "createConv" in request.POST:
+            all_param.append(createConv(request, user, request.POST.get('convName')))
+            return all_param
+        elif "selectConv" in request.POST:
+            updatedConvID = request.POST.get('selectConv')
+            if updatedConvID != conv.id:
+                try:
+                    request.session['actualConv'] = updatedConvID
+                    conv = user.Conv_User.get(id=updatedConvID)
+                    all_param.append(conv)
+                    return all_param
+                except:
+                    conv = firstConv
+                    all_param.append(conv)
+                    return all_param
+        elif "sendMessage" in request.POST:
+            try:
+                sendMsg(user, request)
+            except:
+                pass
+        elif "deleteConv" in request.POST:
+            deleteConvID(request.POST.get('deleteConv'))
+            if request.session['actualConv'] == request.POST.get('deleteConv'):
+                conv_list = user.Conv_User.all()
+                try:
+                    request.session['actualConv'] = conv_list[0].id
+                    conv = conv_list[0]
+                    all_param.append(conv)
+                    return all_param
+                except:
+                    latest_message_list = None
+                    conv_list = None
+                    conv = None
+                    list_user = None
+                    all_param.append(conv)
+                    all_param.append(conv_list)
+                    all_param.append(latest_message_list)
+                    all_param.append(list_user)
+                    return all_param
+        elif "addToConv" in request.POST:
+            addUserToConv(conv, request.POST.get("userToAdd"))
+
+        elif "deleteMessage" in request.POST:
+            deleteMsgID(request.POST.get('deleteMessage'))
+        elif "kickUser" in request.POST:
+            kick(conv, request.POST.get('kickUser'))
+        elif "whisper" in request.POST:
+            whisper(request.POST.get('whisper'), user, request, conv)
+        elif "toFiles" in request.POST:
+            toFiles(request, user, conv)
+
+def toFiles(request, user, conv):
+    allFiles = []
+    allFiles = get_all_files(conv)
+    max = 0
+    id = int(-1)
+    try:
+        for file in allFiles:
+            if len(file.file.name.split("/")) -1 > max:
+                max = len(file.file.name.split("/")) -1
+                id = file.id
+    except:
+        print("No files in allFiles")
+    print(" Longer path lenght : " + str(max))
+    print(" File with longer path = " + str(id))
+    Paths = []
+
+    print("All paths :")
+    for i in range(max):
+        Paths.append([])
+    for file in allFiles:
+        for i in range(len(file.file.name.split("/"))-1):
+            if Paths[i].count(file.file.name.split("/")[i]) == 0:
+                Paths[i].append(file.file.name.split("/")[i])
+    for paths in Paths:
+        for namefiles in paths:
+            print(namefiles)
+
+
+
+
+
+
+def get_all_files(conv):
+    allFiles = []
+    allQSFiles = get_all_QS_files(conv)
+    for QS in allQSFiles:
+        for file in QS:
+            allFiles.append(file)
+    return allFiles
+def get_all_QS_files(conv):
+    allMessages = conv.Messages.all()
+    allQSFiles = []
+    for message in allMessages:
+        QSfiles = message.files.all()
+        if QSfiles.exists():
+            allQSFiles.append(QSfiles)
+    return allQSFiles
 def login(Username, Passwd):
     perf = PerformanceProfiler("login")
     #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
@@ -143,61 +245,8 @@ def sendMsg(user, request):
             toAdd.save()
             conv.Messages.add(toAdd)
 
-def showMessageList(user, request):
-    perf = PerformanceProfiler("showMessageList")
-    conv_list = user.Conv_User.all()
-    try:
-        firstConv = conv_list[0]
-    except:
-        return None, None, None, None
-
-    conv = firstConv
-    try:
-        OldConv = conv_list.get(id=request.session['actualConv'])
-        conv = OldConv
-    except:
-        pass
-
-    try:
-        request.session['actualConv']
-    except:
-        request.session['actualConv'] = conv.id
-
-    if request.method == 'POST':
-        if "selectConv" in request.POST:
-            updatedConvID = request.POST.get('selectConv')
-            if updatedConvID != conv.id:
-                try:
-                    request.session['actualConv'] = updatedConvID
-                    conv = user.Conv_User.get(id=updatedConvID)
-                except:
-                    conv = firstConv
-        elif "sendMessage" in request.POST:
-            try:
-                sendMsg(user, request)
-            except:
-                pass
-        elif "deleteConv" in request.POST:
-            deleteConvID(request.POST.get('deleteConv'))
-            if request.session['actualConv'] == request.POST.get('deleteConv'):
-                conv_list = user.Conv_User.all()
-                try:
-                    request.session['actualConv'] = conv_list[0].id
-                    conv = conv_list[0]
-                except:
-                    return None, None, None, None
-        elif "addToConv" in request.POST:
-            addUserToConv(conv, request.POST.get("userToAdd"))
-
-        elif "deleteMessage" in request.POST:
-            deleteMsgID(request.POST.get('deleteMessage'))
-        elif "kickUser" in request.POST:
-            kick(conv,request.POST.get('kickUser'))
-        elif "whisper" in request.POST:
-            whisper(request.POST.get('whisper'), user, request, conv)
-    latest_message_list = conv.Messages.all().order_by('Date')
-
-    return latest_message_list, conv_list, conv, conv.Users.all()
+def showMessageList(conv):
+   return conv.Messages.all().order_by('Date')
 
 
 def whisper(Receiver, Sender, request, baseConv):
