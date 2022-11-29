@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-v0bqz2de*l$gi3%5$s3gwh-bz8@5=6+@_3xybt63^*jblgakcl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +72,7 @@ TEMPLATES = [
     },
 ]
 
+ASGI_APPLICATION = 'SAE_A2_S3.routing.application'
 WSGI_APPLICATION = 'SAE_A2_S3.wsgi.application'
 
 
@@ -128,3 +130,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'Messagerie.Users'
+

@@ -67,3 +67,6 @@ def log(request):
         print("Connected")
         return redirect('index')
     return HttpResponse(template.render(context, request))
+
+def random(request):
+    return render(request, 'Messagerie/basic_count.html', context={'text':"hello word"})
