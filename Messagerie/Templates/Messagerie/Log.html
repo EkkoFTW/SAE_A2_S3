@@ -1,16 +1,36 @@
 
   <form method="post">
     {% csrf_token %}
+    <label>Connect</label>
     <table>
       <tr>
-        <td><label for="username">Username</label></td>
-        <td><input name="username" id="username" type="text"></td>
+        <td><label for="username">E-Mail</label></td>
+        <td><input name="usernameconnect" id="usernameconnect" type="text"></td>
       </tr>
       <tr>
         <td><label for="password">Password</label></td>
-        <td><input name="password" id="password" type="password"></td>
+        <td><input name="passwordconnect" id="passwordconnect" type="password"></td>
       </tr>
     </table>
-    <button type="submit"> Send </button>
+    <button type="submit" name="connect"> Send </button>
+  </form>
+  <form method="post">
+    {% csrf_token %}
+    <label>Create a user</label>
+    <table>
+      <tr>
+        <td><label for="username">Username</label></td>
+        <td><input name="username" id="usernamecreate" type="text"></td>
+      </tr>
+      <tr>
+        <td><label for="password">E-Mail</label></td>
+        <td><input name="email" id="email" type="email"></td>
+      </tr>
+      <tr>
+        <td><label for="password">Password</label></td>
+        <td><input name="password" id="passwordcreate" type="password"></td>
+      </tr>
+    </table>
+    <button type="submit" name="create"> Send </button>
   </form>
 

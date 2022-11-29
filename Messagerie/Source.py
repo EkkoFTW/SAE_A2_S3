@@ -74,6 +74,13 @@ def handle_form_response(request, user, conv, firstConv):
             whisper(request.POST.get('whisper'), user, request, conv)
         elif "toFiles" in request.POST:
             toFiles(request, user, conv)
+        elif "logout" in request.POST:
+            disconnect(user)
+
+def disconnect(user):
+    print(user.sessionid)
+    user.sessionid = "Empty"
+    user.save()
 
 def toFiles(request, user, conv):
     allFiles = []
@@ -125,7 +132,9 @@ def get_all_QS_files(conv):
 def login(Username, Passwd):
     perf = PerformanceProfiler("login")
     #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
+    print("Login : " +Username + Passwd)
     user = authenticate(username=Username, password=Passwd)
+    print(user)
     if user is not None:
         print('connection: succeed ---> ', end="")
         return user

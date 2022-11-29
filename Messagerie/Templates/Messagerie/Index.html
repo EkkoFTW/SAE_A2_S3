@@ -84,6 +84,10 @@
                     <button type="submit" name="toFiles"><img src="/media/website/file.png" alt="Files"></button>
                 </form>
             {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="logout">Logout</button>
+            </form>
             {% if list_user %}
             <ul>
                 {% for user in list_user %}

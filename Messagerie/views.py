@@ -40,7 +40,8 @@ def index(request):
     try:
         request.session['actualConv']
     except:
-        request.session['actualConv'] = conv.id
+        if conv is not None:
+            request.session['actualConv'] = conv.id
     all_param = []
     all_param = handle_form_response(request, user, conv, firstConv)
     try:
@@ -88,22 +89,25 @@ def log(request):
     if user != -1:
         connected = True
     else:
-        print("not auto-logged in")
-        user = login(request.POST.get('username'), request.POST.get('password'))
-        if user != -1:
-            print("connected", end="")
-            connected = True
-            request.session['userid'] = user.email
-            try:
-                user.sessionid = request.COOKIES.get('sessionid')
-                user.save()
-            except:
-                print('no sessionid set')
-                user.sessionid = request.session.session_key
-                user.save()
-        else:
-            print('no matching account')
-    if connected:
-        print("Connected")
-        return redirect('index')
-    return HttpResponse(template.render(context, request))
+        if "connect" in request.POST:
+            user = login(request.POST.get('usernameconnect'), request.POST.get('passwordconnect'))
+            if user != -1:
+                print("connected", end="")
+                connected = True
+                request.session['userid'] = user.email
+                try:
+                    user.sessionid = request.COOKIES.get('sessionid')
+                    user.save()
+                except:
+                    print('no sessionid set')
+                    user.sessionid = request.session.session_key
+                    user.save()
+            else:
+                print('no matching account')
+        elif "create" in request.POST:
+            Users.objects.create_user(request.POST['username'], request.POST['email'], request.POST['password'])
+            return HttpResponse(template.render(context, request))
+        if connected:
+            print("Connected")
+            return redirect('index')
+        return HttpResponse(template.render(context, request))
