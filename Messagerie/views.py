@@ -9,6 +9,8 @@ from .Source import *
 from django.conf import settings
 from django.shortcuts import redirect
 
+#latest_message_list, conv_list, conv, list_user
+
 def index(request):
     perf = PerformanceProfiler("index")
     try:
@@ -18,12 +20,51 @@ def index(request):
             return redirect('log')
     except:
         return redirect('log')
-    if request.method:
-        if "createConv" in request.POST:
-            createConv(request, user, request.POST.get('convName'))
-    latest_message_list, conv_list, conv, list_user = showMessageList(user, request)
+
+    conv_list = user.Conv_User.all()
+    firstConv = None
+    try:
+        firstConv = conv_list[0]
+        conv = firstConv
+    except:
+        latest_message_list = None
+        conv_list = None
+        conv = None
+        list_user = None
+    try:
+        OldConv = conv_list.get(id=request.session['actualConv'])
+        conv = OldConv
+    except:
+        pass
+
+    try:
+        request.session['actualConv']
+    except:
+        if conv is not None:
+            request.session['actualConv'] = conv.id
+    all_param = []
+    all_param = handle_form_response(request, user, conv, firstConv)
+    try:
+        for i in range(len(all_param)):
+            if i == 0:
+                conv = all_param[i]
+            elif i == 1:
+                conv_list = all_param[i]
+            elif i == 2:
+                latest_message_list = all_param[i]
+            elif i == 3:
+                list_user = all_param[i]
+    except:
+        pass
+
     fileform = FileForm()
     template = loader.get_template('Messagerie/Index.html')
+    if conv is not None:
+        latest_message_list = showMessageList(conv)
+        list_user = conv.Users.all()
+        conv_list = user.Conv_User.all()
+    else:
+        latest_message_list = list_user = None
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
 
     if conv_list is not None:
@@ -48,25 +89,25 @@ def log(request):
     if user != -1:
         connected = True
     else:
-        print("not auto-logged in")
-        user = login(request.POST.get('username'), request.POST.get('password'))
-        if user != -1:
-            print("connected", end="")
-            connected = True
-            request.session['userid'] = user.email
-            try:
-                user.sessionid = request.COOKIES.get('sessionid')
-                user.save()
-            except:
-                print('no sessionid set')
-                user.sessionid = request.session.session_key
-                user.save()
-        else:
-            print('no matching account')
-    if connected:
-        print("Connected")
-        return redirect('index')
-    return HttpResponse(template.render(context, request))
-
-def random(request):
-    return render(request, 'Messagerie/basic_count.html', context={'text':"hello word"})
+        if "connect" in request.POST:
+            user = login(request.POST.get('usernameconnect'), request.POST.get('passwordconnect'))
+            if user != -1:
+                print("connected", end="")
+                connected = True
+                request.session['userid'] = user.email
+                try:
+                    user.sessionid = request.COOKIES.get('sessionid')
+                    user.save()
+                except:
+                    print('no sessionid set')
+                    user.sessionid = request.session.session_key
+                    user.save()
+            else:
+                print('no matching account')
+        elif "create" in request.POST:
+            Users.objects.create_user(request.POST['username'], request.POST['email'], request.POST['password'])
+            return HttpResponse(template.render(context, request))
+        if connected:
+            print("Connected")
+            return redirect('index')
+        return HttpResponse(template.render(context, request))
