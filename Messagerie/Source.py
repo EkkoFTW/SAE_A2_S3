@@ -73,7 +73,8 @@ def handle_form_response(request, user, conv, firstConv):
         elif "whisper" in request.POST:
             whisper(request.POST.get('whisper'), user, request, conv)
         elif "toFiles" in request.POST:
-            toFiles(request, user, conv)
+            #toFiles(request, user, conv)
+            all_files = get_all_files(conv, "files/")
         elif "logout" in request.POST:
             disconnect(user)
 
@@ -82,6 +83,8 @@ def disconnect(user):
     user.sessionid = "Empty"
     user.save()
 
+
+"""
 def toFiles(request, user, conv):
     allFiles = []
     allFiles = get_all_files(conv)
@@ -110,10 +113,6 @@ def toFiles(request, user, conv):
             print(namefiles)
 
 
-
-
-
-
 def get_all_files(conv):
     allFiles = []
     allQSFiles = get_all_QS_files(conv)
@@ -121,14 +120,45 @@ def get_all_files(conv):
         for file in QS:
             allFiles.append(file)
     return allFiles
+
+"""
 def get_all_QS_files(conv):
     allMessages = conv.Messages.all()
-    allQSFiles = []
+    QSfiles = None
     for message in allMessages:
         QSfiles = message.files.all()
-        if QSfiles.exists():
-            allQSFiles.append(QSfiles)
-    return allQSFiles
+    return QSfiles
+def get_files_in_conv_with_path(conv, start):
+    QSFiles = get_all_QS_files(conv)
+    all_files = []
+    if QSFiles is not None:
+        QSFilesPath = QSFiles.filter(file__iregex="^" + start)
+        print(QSFilesPath)
+    else:
+        return None
+    if QSFilesPath is not None:
+        for file in QSFilesPath:
+            all_files.append(file)
+        return all_files
+    else:
+        return None
+
+def get_all_files(conv, start):
+    all_files = get_files_in_conv_with_path(conv, start)
+    start_path = start.split("/")
+    for i in range(len(all_files)):
+        fpart = ""
+        path = all_files[i]
+        path = str(path.file).split(start)
+        for part in path:
+            fpart += part
+        fpart = fpart.split("/")
+        if(len(fpart) > 2):
+            print(len(fpart))
+            all_files.remove(all_files[i])
+    return all_files
+
+
 def login(Username, Passwd):
     perf = PerformanceProfiler("login")
     #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
@@ -218,10 +248,8 @@ def sendMsg(user, request):
     #print("Actual session to send message : ", end="")
     #print(request.session["actualConv"])
     text = request.POST.get('text')
-
+    print("Message sent")
     try:
-        if False and text.__len__() > 5000:
-            text = text[:5000]
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():
@@ -232,6 +260,16 @@ def sendMsg(user, request):
             for f in Files:
                 toAdd = File()
                 toAdd.file = f
+                name = toAdd.file.name.split("/")
+                name = name[len(name)]
+                toAdd.file.name = "files/" + str(conv.id) + "/" + str(user.pk) + "/" + name
+                print()
+                print()
+                print()
+                print(str(toAdd.file.name) + " is the file name")
+                print()
+                print()
+                print()
                 files.append(toAdd)
                 files[i].save()
                 i += 1
