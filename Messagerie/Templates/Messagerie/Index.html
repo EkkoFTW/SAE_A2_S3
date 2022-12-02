@@ -29,49 +29,9 @@
         </div>
         <div class="sub-container-main">
             <p>{{ conv_shown.Name }} </p>
-            <div class="msgList">
-                {% if latest_message_list %}
-                <ul>{% for Message in latest_message_list %}
-                    <li><p>{{Message.Date}}</p>
-                        <form method="post">
-                            {% csrf_token %}
-                            <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
-                            <p> {{ Message.Text }} </p>
-                            {% for Image in Message.files.all %}
-                                <img class="aImg" src="{{ Image.file.url }}" alt="{{ Image.file }}">
-                            {% endfor %}
-                            <button type="submit" name="deleteMessage" value="{{ Message.id }}"> Delete </button>
-                            <button type="submit" name="editMessage" value="{{ Message.id }}"> Edit </button>
-                            <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>
-                        </form>
-                        <br>
-                        {% endfor %}
-                </ul>
-                {% else %}
-                <p>No Message are available.</p>
-                {% endif %}
-            </div>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div id="msgSender-container">
-                    <div id="msgSender-left">
-                        {{ fileform }}
-                    </div>
-                    <div id="msgSender-main">
-                        <textarea name="text" id="toSend"></textarea>
-                    </div>
-                    <div id="msgSender-right">
-                    </div>
-                </div>
-                <button type="submit" name="sendMessage"> Send </button>
-            </form>
-            {% if img_obj %}
-            <h3>Succesfully uploaded : {{img_obj.title}}</h3>
-            <img src="{{ img_obj.image.url}}" alt="connect" style="max-height:300px">
-            {% endif %}
+            {% include "./conv.html" %}
         </div>
         <div class="sub-container-right">
-
             {% if conv_list %}
                 <form method="post">
                     {% csrf_token %}
@@ -103,4 +63,9 @@
             {% endif %}
         </div>
     </div>
+    <label hidden id="csrf_token">{{ csrf_token }}</label>
+    {{ user.id|json_script:"user_id" }}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="{% static 'Messagerie/index.js' %}">
+    </script>
  </html>

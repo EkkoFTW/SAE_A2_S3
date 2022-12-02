@@ -220,8 +220,6 @@ def sendMsg(user, request):
     text = request.POST.get('text')
 
     try:
-        if False and text.__len__() > 5000:
-            text = text[:5000]
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():

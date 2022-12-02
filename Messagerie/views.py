@@ -13,6 +13,7 @@ from django.shortcuts import redirect
 
 def index(request):
     perf = PerformanceProfiler("index")
+    print(request.POST)
     try:
         user = auto_login(request.session.session_key, request.session.get('userid'))
         if user == -1:
@@ -65,7 +66,7 @@ def index(request):
         conv_list = user.Conv_User.all()
     else:
         latest_message_list = list_user = None
-    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
+    context = {"user": user, 'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
 
     if conv_list is not None:
         for i in conv_list:
