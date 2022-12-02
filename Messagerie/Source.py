@@ -74,10 +74,14 @@ def handle_form_response(request, user, conv, firstConv):
             whisper(request.POST.get('whisper'), user, request, conv)
         elif "toFiles" in request.POST:
             #toFiles(request, user, conv)
-            all_files = get_all_files(conv, "files/" + str(conv.id) + "/" + str(user.pk) + "/")
+            path_to_file = "files/" + str(conv.id) + "/" + str(user.pk) + "/"
+            all_files, subdirs = get_all_files(conv, path_to_file)
             print("Final files gotten :")
             for lone_file in all_files:
                 print(lone_file)
+            print("All subdirectories :")
+            for subdir in subdirs:
+                print( "SD :" +subdir)
         elif "logout" in request.POST:
             disconnect(user)
 
@@ -97,6 +101,7 @@ def get_files_in_conv_with_path(conv, start):
     QSFilesList = get_all_QS_files(conv)
     all_files = []
     QSFilesPath = None
+    print("All files in conv :")
     for QSFiles in QSFilesList:
         if QSFiles is not None:
             for lone_file in QSFiles:
@@ -104,21 +109,25 @@ def get_files_in_conv_with_path(conv, start):
         if QSFilesPath is not None:
             for file in QSFilesPath:
                 all_files.append(file)
+                print(file.file)
     return all_files
 
 def get_all_files(conv, start):
     all_files = get_files_in_conv_with_path(conv, start)
     start_path = start.split("/")
-    for i in range(len(all_files)):
+    subdirs = []
+    for i in reversed(range(len(all_files))):
         fpart = ""
         path = all_files[i]
         path = str(path.file).split(start)
         for part in path:
             fpart += part
         fpart = fpart.split("/")
-        if(len(fpart) > 2):
+        if(len(fpart) > 1):
+            if fpart[0] not in subdirs:
+                subdirs.append(fpart[0])
             all_files.remove(all_files[i])
-    return all_files
+    return all_files, subdirs
 
 
 def login(Username, Passwd):
