@@ -74,7 +74,10 @@ def handle_form_response(request, user, conv, firstConv):
             whisper(request.POST.get('whisper'), user, request, conv)
         elif "toFiles" in request.POST:
             #toFiles(request, user, conv)
-            all_files = get_all_files(conv, "files/")
+            all_files = get_all_files(conv, "files/" + str(conv.id) + "/" + str(user.pk) + "/")
+            print("Final files gotten :")
+            for lone_file in all_files:
+                print(lone_file)
         elif "logout" in request.POST:
             disconnect(user)
 
@@ -83,65 +86,25 @@ def disconnect(user):
     user.sessionid = "Empty"
     user.save()
 
-
-"""
-def toFiles(request, user, conv):
-    allFiles = []
-    allFiles = get_all_files(conv)
-    max = 0
-    id = int(-1)
-    try:
-        for file in allFiles:
-            if len(file.file.name.split("/")) -1 > max:
-                max = len(file.file.name.split("/")) -1
-                id = file.id
-    except:
-        print("No files in allFiles")
-    print(" Longer path lenght : " + str(max))
-    print(" File with longer path = " + str(id))
-    Paths = []
-
-    print("All paths :")
-    for i in range(max):
-        Paths.append([])
-    for file in allFiles:
-        for i in range(len(file.file.name.split("/"))-1):
-            if Paths[i].count(file.file.name.split("/")[i]) == 0:
-                Paths[i].append(file.file.name.split("/")[i])
-    for paths in Paths:
-        for namefiles in paths:
-            print(namefiles)
-
-
-def get_all_files(conv):
-    allFiles = []
-    allQSFiles = get_all_QS_files(conv)
-    for QS in allQSFiles:
-        for file in QS:
-            allFiles.append(file)
-    return allFiles
-
-"""
 def get_all_QS_files(conv):
     allMessages = conv.Messages.all()
-    QSfiles = None
+    QSfiles = []
     for message in allMessages:
-        QSfiles = message.files.all()
+        if message.files.all() is not None:
+            QSfiles.append(message.files.all())
     return QSfiles
 def get_files_in_conv_with_path(conv, start):
-    QSFiles = get_all_QS_files(conv)
+    QSFilesList = get_all_QS_files(conv)
     all_files = []
-    if QSFiles is not None:
-        QSFilesPath = QSFiles.filter(file__iregex="^" + start)
-        print(QSFilesPath)
-    else:
-        return None
-    if QSFilesPath is not None:
-        for file in QSFilesPath:
-            all_files.append(file)
-        return all_files
-    else:
-        return None
+    QSFilesPath = None
+    for QSFiles in QSFilesList:
+        if QSFiles is not None:
+            for lone_file in QSFiles:
+                QSFilesPath = QSFiles.filter(file__iregex="^" + start)
+        if QSFilesPath is not None:
+            for file in QSFilesPath:
+                all_files.append(file)
+    return all_files
 
 def get_all_files(conv, start):
     all_files = get_files_in_conv_with_path(conv, start)
@@ -154,7 +117,6 @@ def get_all_files(conv, start):
             fpart += part
         fpart = fpart.split("/")
         if(len(fpart) > 2):
-            print(len(fpart))
             all_files.remove(all_files[i])
     return all_files
 
@@ -261,15 +223,8 @@ def sendMsg(user, request):
                 toAdd = File()
                 toAdd.file = f
                 name = toAdd.file.name.split("/")
-                name = name[len(name)]
-                toAdd.file.name = "files/" + str(conv.id) + "/" + str(user.pk) + "/" + name
-                print()
-                print()
-                print()
-                print(str(toAdd.file.name) + " is the file name")
-                print()
-                print()
-                print()
+                name = name[len(name)-1]
+                toAdd.file.name = str(conv.id) + "/" + str(user.pk) + "/" + name
                 files.append(toAdd)
                 files[i].save()
                 i += 1
