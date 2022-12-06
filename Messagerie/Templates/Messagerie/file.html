@@ -1,0 +1,75 @@
+ <!DOCTYPE html>
+ <html>
+    <head>
+      {% load static %}
+      <link rel="stylesheet" href="{% static 'Messagerie/conversation.css' %}">
+    </head>
+    <div class="container">
+        <div class="sub-container-left">
+            <form method="post">
+                {% csrf_token %}
+                <input type="text" name="convName">
+                <button type="submit" name="createConv" value=1> Create a conv </button>
+            </form>
+            {% if conv_list %}
+            <ul>
+                {% for conv in conv_list %}
+                <form method="post">
+                    {% csrf_token %}
+                    <label> {{ conv.Name }} </label>
+                    <button type="submit" name="selectConv" value="{{conv.id}}"> Select </button>
+                    <button type="submit" name="deleteConv" value="{{conv.id}}"> Delete </button>
+                    <br>
+                </form>
+            {% endfor %}
+        </ul>
+            {% else %}
+            <p>No conv are available.</p>
+            {% endif %}
+        </div>
+        <div class="sub-container-main">
+            <p>{{ conv_shown.Name }} </p>
+            {% for file in list_files %}
+            <form method="post">
+                {% csrf_token %}
+                <label> {{ file.file.name }} </label>
+                <button type="submit" name="selectFile" value="{{file.id}}"> Select </button>
+                <button type="submit" name="deleteFile" value="{{file.id}}"> Delete </button>
+                <br>
+            </form>
+            {% endfor %}
+
+        <div class="sub-container-right">
+
+            {% if conv_list %}
+                <form method="post">
+                    {% csrf_token %}
+                    <label for="userToAdd">E-Mail</label>
+                    <input type="text" id="userToAdd" name="userToAdd">
+                    <button type="submit" name="addToConv">Ajouter</button>
+                </form>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="toFiles"><img src="/media/website/file.png" alt="Files"></button>
+                </form>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="logout">Logout</button>
+            </form>
+            {% if list_user %}
+            <ul>
+                {% for user in list_user %}
+                    <label>{{ user.username_value }}</label>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" name="kickUser" value="{{ user.id }}"> Kick </button>
+                        <button type="submit" name="banUser" value="{{ user.id }}"> Ban </button>
+                        <button type="submit" name="whisper" value="{{ user.id }}"> MP </button>
+                    </form>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+ </html>

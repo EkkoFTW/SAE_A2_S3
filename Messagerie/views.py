@@ -47,7 +47,10 @@ def index(request):
     try:
         for i in range(len(all_param)):
             if i == 0:
-                conv = all_param[i]
+                if(type(all_param[i]) == type(redirect)):
+                    return all_param[i]
+                else:
+                    conv = all_param[i]
             elif i == 1:
                 conv_list = all_param[i]
             elif i == 2:
@@ -111,3 +114,79 @@ def log(request):
             print("Connected")
             return redirect('index')
         return HttpResponse(template.render(context, request))
+
+def file(request):
+
+    context = {}
+    template = loader.get_template('Messagerie/file.html')
+    try:
+        user = auto_login(request.session.session_key, request.session.get('userid'))
+        if user == -1:
+            print("no sessionid")
+            return redirect('log')
+    except:
+        return redirect('log')
+
+    conv_list = user.Conv_User.all()
+    firstConv = None
+    latest_message_list = None
+    list_user = None
+    try:
+        firstConv = conv_list[0]
+        conv = firstConv
+    except:
+        latest_message_list = None
+        conv_list = None
+        conv = None
+        list_user = None
+    try:
+        OldConv = conv_list.get(id=request.session['actualConv'])
+        conv = OldConv
+    except:
+        pass
+    try:
+        request.session['actualConv']
+    except:
+        if conv is not None:
+            request.session['actualConv'] = conv.id
+
+    all_param = handle_form_response(request, user, conv, firstConv)
+    try:
+        for i in range(len(all_param)):
+            if i == 0:
+                if (type(all_param[i]) == type(redirect)):
+                    return all_param[i]
+                else:
+                    conv = all_param[i]
+            elif i == 1:
+                conv_list = all_param[i]
+            elif i == 2:
+                latest_message_list = all_param[i]
+            elif i == 3:
+                list_user = all_param[i]
+    except:
+        pass
+
+
+    fileform = FileForm()
+
+
+
+
+    if conv_list is not None:
+        for i in conv_list:
+            if (str(i.Name).__len__() > 12):
+                i.Name = i.Name[:10] + "..."
+
+
+    path_to_file = path_to_file = "files/" + str(conv.id) + "/" + str(user.pk) + "/"
+    if 'filePath' in request.POST:
+        path_to_file += request.POST['File_Path']
+
+
+    all_files, sub_dirs = get_all_files(conv, path_to_file)
+    print(all_files)
+    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv,
+               'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'sub_dir': sub_dirs}
+
+    return HttpResponse(template.render(context, request))

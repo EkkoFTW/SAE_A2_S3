@@ -4,6 +4,7 @@ from .models import *
 from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
+from django.shortcuts import redirect
 from django.template import loader
 
 class formsToInt(Enum):
@@ -72,18 +73,14 @@ def handle_form_response(request, user, conv, firstConv):
             kick(conv, request.POST.get('kickUser'))
         elif "whisper" in request.POST:
             whisper(request.POST.get('whisper'), user, request, conv)
-        elif "toFiles" in request.POST:
-            #toFiles(request, user, conv)
-            path_to_file = "files/" + str(conv.id) + "/" + str(user.pk) + "/"
-            all_files, subdirs = get_all_files(conv, path_to_file)
-            print("Final files gotten :")
-            for lone_file in all_files:
-                print(lone_file)
-            print("All subdirectories :")
-            for subdir in subdirs:
-                print( "SD :" +subdir)
         elif "logout" in request.POST:
             disconnect(user)
+
+        elif "toFiles" in request.POST:
+            # toFiles(request, user, conv)
+            return redirect('file')
+        elif 'deleteFile' in request.POST:
+            return deleteFile(request.POST['deleteFile'])
 
 def disconnect(user):
     print(user.sessionid)
@@ -101,7 +98,8 @@ def get_files_in_conv_with_path(conv, start):
     QSFilesList = get_all_QS_files(conv)
     all_files = []
     QSFilesPath = None
-    print("All files in conv :")
+    print("All files in conv : ", end='')
+    print(conv)
     for QSFiles in QSFilesList:
         if QSFiles is not None:
             for lone_file in QSFiles:
@@ -331,3 +329,14 @@ def deleteMsg(msg):
         msg.delete()
     except:
         print(perf.space() + "msg does not exist")
+
+def deleteFile(id):
+    try:
+        file = File.objects.get(pk=id)
+        if file is None:
+            return -1
+        else:
+            file.file.message
+            file.delete()
+    except:
+        print("File does not exist or isn't reached")
