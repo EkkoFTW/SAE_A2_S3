@@ -111,9 +111,23 @@ def handler(request):
     perf = PerformanceProfiler("handler")
     if request.method == 'POST':
         if "sendMessage" in request.POST.get("type"):
-            msg = sendMsg(getUser(request.session.get('userid')), request)
+            user = getUser(request.session.get('userid'));
+            msg = sendMsg(user, request)
             fileList = []
             for fl in msg.files.all():
                 fileList.append(fl.file.url)
-            return JsonResponse(data={"userid":msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+            return JsonResponse(data={"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+        elif "fetch" in request.POST.get("type"):
+            user = getUser(request.session.get('userid'))
+            conv = getConv(request.session['actualConv'])
+            msgList = fetchAskedMsg(conv)
+            Dict = {}
+            records = []
+            for msg in msgList:
+                fileList = []
+                for fl in msg.files.all():
+                    fileList.append(fl.file.url)
+                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+            Dict["msgList"] = records
+            return JsonResponse(data=Dict)
     return JsonResponse(data="EMPTY", safe=False)

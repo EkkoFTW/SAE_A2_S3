@@ -3,31 +3,51 @@ const csrf_token = document.querySelector("#csrf_token").innerHTML;
 const addrIP = "http://127.0.0.1:8000/Messagerie/";
 const ws = new WebSocket("ws://127.0.0.1:8000/ws/");
 
+ws.onopen = function (e){
+    //fetchMsg();
+}
+
 ws.onclose = function (e){
     console.log("disconnected");
 }
 
 document.querySelector("#msgList").innerHTML = "<ul id='msgUl'></ul>";
 
+
 function addFiles(fd, messageFiles){
     for (let i = 0; i < messageFiles.length; i++){
-        fd.append('files', messageFiles[0]);
+        fd.append('files', messageFiles[i]);
     }
 }
-function Begin() {
+
+function fetchMsg() {
     fd = new FormData();
-    fd.append("csrfmiddlewaretoken",csrf_token);
-    fd.append("type", 'begin');
-    fd.append("user_id", user_id);
+    fd.append("type", 'fetch');
+    fd.append("nbFetch", "10");
     $.ajax({
         type: "POST",
-        url: addrIP,
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
         data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            try {
+                for(let i = 0; i < response['msgList'].length; i++){
+                    JsonToMsg(JSON.stringify(response['msgList'][i]))
+                }
+
+            }
+            catch(e){}
+        }
     })
 }
 
 function JsonToMsg(msg){
-    console.log(msg);
     obj = JSON.parse(msg);
     let userid = obj.userid;
     let username = obj.username
@@ -79,10 +99,14 @@ document.querySelector("#messageSubmit").onclick = function (e){
         },
         success: function (response){
             ws.send(JSON.stringify(response));
-            JsonToMsg(JSON.stringify(response));
+            //JsonToMsg(JSON.stringify(response));
         }
     })
 
+    ws.onmessage = function (msg){
+        console.log(msg.data);
+        JsonToMsg(msg.data);
+    }
 
 }
 

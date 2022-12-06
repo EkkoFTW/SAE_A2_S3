@@ -39,11 +39,6 @@ def handle_form_response(request, user, conv, firstConv):
                     conv = firstConv
                     all_param.append(conv)
                     return all_param
-        elif "sendMessage" in request.POST.get("type"):
-            try:
-                sendMsg(user, request)
-            except:
-                pass
         elif "deleteConv" in request.POST:
             deleteConvID(request.POST.get('deleteConv'))
             if request.session['actualConv'] == request.POST.get('deleteConv'):
@@ -330,5 +325,17 @@ def getUser(user_id):
     try:
         return Users.objects.get(pk=user_id)
     except:
-        return
+        return -1
 
+def getConv(conv_id):
+    perf = PerformanceProfiler("getConv")
+    try:
+        return Conv_User.objects.get(pk=conv_id)
+    except:
+        return -1
+
+def fetchAskedMsg(conv, nb=20):
+    allMsg = conv.Messages.all()
+    latest = allMsg[allMsg.count()-1]
+    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=allMsg[allMsg.count()-1-nb].id)
+    return msgList
