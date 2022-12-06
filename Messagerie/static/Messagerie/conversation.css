@@ -34,7 +34,7 @@ html {
     width: 5%;
 }
 
-.msgList {
+#msgList {
     overflow: auto;
     height: 100%;
     max-height: 80vh;

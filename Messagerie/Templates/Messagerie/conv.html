@@ -1,10 +1,11 @@
-<div class="msgList">
+<div id="msgList">
   {% if latest_message_list %}
-  <ul>{% for Message in latest_message_list %}
+
+  <!--<ul>{% for Message in latest_message_list %}
     <li><p>{{Message.Date}}</p>
       <form method="post">
         {% csrf_token %}
-        <a href="/Messagerie/{{ Message.Sender }}/">{{ Message.Sender }}</a>
+        <a href="/Messagerie/{{ Message.Sender.username_value }}/">{{ Message.Sender.username_value }}</a>
         <p> {{ Message.Text }} </p>
         {% for Image in Message.files.all %}
         <img class="aImg" src="{{ Image.file.url }}" alt="{{ Image.file }}">
@@ -14,7 +15,7 @@
         <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>
       </form>
       <br>
-      {% endfor %}
+      {% endfor %}-->
     </li>
   </ul>
   {% else %}

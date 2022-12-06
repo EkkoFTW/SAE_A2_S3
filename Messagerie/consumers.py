@@ -19,7 +19,7 @@ class PracticeConsumer(AsyncConsumer):
 
     async def websocket_receive(self, event):
         # when messages is received from websocket
-        print("receive", event)
+        print(event)
         sleep(1)
         await self.send({"type": "websocket.send"})
 

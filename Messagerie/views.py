@@ -1,27 +1,19 @@
-from django.http import HttpResponse
-from django.http import HttpRequest
-from django.template import loader
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse, JsonResponse
 
-from .forms import FileForm
-from .models import *
 from .Source import *
-from django.conf import settings
 from django.shortcuts import redirect
 
 #latest_message_list, conv_list, conv, list_user
 
 def index(request):
     perf = PerformanceProfiler("index")
-    print(request.POST)
     try:
-        user = auto_login(request.session.session_key, request.session.get('userid'))
+        user = auto_login(request.session.session_key, request.session.get('email'))
         if user == -1:
             print("no sessionid")
             return redirect('log')
     except:
         return redirect('log')
-
     conv_list = user.Conv_User.all()
     firstConv = None
     try:
@@ -77,6 +69,7 @@ def index(request):
     return HttpResponse(template.render(context, request))
 
 def log(request):
+    perf = PerformanceProfiler("log")
     context = {}
     connected = False
     template = loader.get_template('Messagerie/Log.html')
@@ -95,7 +88,8 @@ def log(request):
             if user != -1:
                 print("connected", end="")
                 connected = True
-                request.session['userid'] = user.email
+                request.session['email'] = user.email
+                request.session['userid'] = user.id
                 try:
                     user.sessionid = request.COOKIES.get('sessionid')
                     user.save()
@@ -108,7 +102,18 @@ def log(request):
         elif "create" in request.POST:
             Users.objects.create_user(request.POST['username'], request.POST['email'], request.POST['password'])
             return HttpResponse(template.render(context, request))
-        if connected:
-            print("Connected")
-            return redirect('index')
-        return HttpResponse(template.render(context, request))
+    if connected:
+        print("Connected")
+        return redirect('index')
+    return HttpResponse(template.render(context, request))
+
+def handler(request):
+    perf = PerformanceProfiler("handler")
+    if request.method == 'POST':
+        if "sendMessage" in request.POST.get("type"):
+            msg = sendMsg(getUser(request.session.get('userid')), request)
+            fileList = []
+            for fl in msg.files.all():
+                fileList.append(fl.file.url)
+            return JsonResponse(data={"userid":msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+    return JsonResponse(data="EMPTY", safe=False)

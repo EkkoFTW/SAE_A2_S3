@@ -39,7 +39,7 @@ def handle_form_response(request, user, conv, firstConv):
                     conv = firstConv
                     all_param.append(conv)
                     return all_param
-        elif "sendMessage" in request.POST:
+        elif "sendMessage" in request.POST.get("type"):
             try:
                 sendMsg(user, request)
             except:
@@ -144,21 +144,15 @@ def login(Username, Passwd):
 
 def auto_login(Sessionid, Userid):
     perf = PerformanceProfiler("auto_login")
-    #print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
     if Sessionid is None or Userid is None:
-        #print("Nop")
         return -1
     user = Users.objects.get(email=Userid)
     if user is None:
-        #print("userid dosn't exist")
-        #print("")
         return -1
     sessionid = user.sessionid
     if sessionid == Sessionid:
-        #print("Connected to " + str(user))
         return user
     else:
-        #print("Wrong SessionID for " + str(user))
         return -1
 
 def createConv(request, user, convName):
@@ -215,15 +209,13 @@ def addUserObjToConv(Conv, user):
 
 def sendMsg(user, request):
     perf = PerformanceProfiler("sendMsg")
-    #print("Actual session to send message : ", end="")
-    #print(request.session["actualConv"])
     text = request.POST.get('text')
-
+    toAdd = None
     try:
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():
-            Files = request.FILES.getlist('file')
+            Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
             i = 0
             files = []
@@ -247,10 +239,15 @@ def sendMsg(user, request):
                 conv.Messages.add(toAdd)
     except:
         if text is not None and conv is not None:
+            conv = request.session['actualConv']
             conv = Conv_User.objects.get(id=conv)
             toAdd = Message(Sender=user, Text=text, Date=timezone.now())
             toAdd.save()
             conv.Messages.add(toAdd)
+    try:
+        return toAdd
+    except:
+        return -1
 
 def showMessageList(conv):
    return conv.Messages.all().order_by('Date')
@@ -327,3 +324,11 @@ def deleteMsg(msg):
         msg.delete()
     except:
         print(perf.space() + "msg does not exist")
+
+def getUser(user_id):
+    perf = PerformanceProfiler("getUser")
+    try:
+        return Users.objects.get(pk=user_id)
+    except:
+        return
+
