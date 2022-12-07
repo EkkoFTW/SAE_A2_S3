@@ -4,15 +4,16 @@ const addrIP = "http://127.0.0.1:8000/Messagerie/";
 const ws = new WebSocket("ws://127.0.0.1:8000/ws/");
 
 ws.onopen = function (e){
-    //fetchMsg();
+    fetchMsg(true);
 }
 
 ws.onclose = function (e){
     console.log("disconnected");
 }
 
-document.querySelector("#msgList").innerHTML = "<ul id='msgUl'></ul>";
+let chatbox = document.getElementById("msgList");
 
+document.querySelector("#msgList").innerHTML = "<ul id='msgUl'></ul>";
 
 function addFiles(fd, messageFiles){
     for (let i = 0; i < messageFiles.length; i++){
@@ -20,7 +21,7 @@ function addFiles(fd, messageFiles){
     }
 }
 
-function fetchMsg() {
+function fetchMsg(first=false) {
     fd = new FormData();
     fd.append("type", 'fetch');
     fd.append("nbFetch", "10");
@@ -40,7 +41,9 @@ function fetchMsg() {
                 for(let i = 0; i < response['msgList'].length; i++){
                     JsonToMsg(JSON.stringify(response['msgList'][i]))
                 }
-
+                if (true){
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                }
             }
             catch(e){}
         }
@@ -67,14 +70,15 @@ function genMsg(userid, username, convid, msgid,text, files, date){
     }
     document.querySelector("#msgUl").innerHTML +=
         "<li><p>"+date+"</p>"+
-        "<form method='post'>"+
-            "<a href="+username+">username</a>"+
-            "<p> "+text+" </p>"+
-            listFile +
-                    "<button type='submit' name='deleteMessage' value="+msgid+"> Delete</button>"+
+            "<form method='post'>"+
+                "<a href="+username+">username</a>"+
+                "<p> "+text+" </p>"+
+                listFile +
+                "<button type='submit' name='deleteMessage' value="+msgid+"> Delete</button>"+
                 "<button type='submit' name='editMessage' value="+msgid+"> Edit</button>"+
                 "<button type='submit' name='replyMessage' value="+msgid+"> Reply</button>"+
-        "</form>"+
+            "</form>" +
+        "</li>"+
         "<br>";
 }
 
@@ -99,12 +103,10 @@ document.querySelector("#messageSubmit").onclick = function (e){
         },
         success: function (response){
             ws.send(JSON.stringify(response));
-            //JsonToMsg(JSON.stringify(response));
         }
     })
 
     ws.onmessage = function (msg){
-        console.log(msg.data);
         JsonToMsg(msg.data);
     }
 

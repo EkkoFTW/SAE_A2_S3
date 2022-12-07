@@ -334,8 +334,16 @@ def getConv(conv_id):
     except:
         return -1
 
-def fetchAskedMsg(conv, nb=20):
+def fetchAskedMsg(conv, begin=0,nb=20):
     allMsg = conv.Messages.all()
-    latest = allMsg[allMsg.count()-1]
-    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=allMsg[allMsg.count()-1-nb].id)
+    nbMsg = allMsg.count()-1
+    nbMsg = nbMsg - begin
+
+    if nbMsg < 0:
+        return []
+    if nb > nbMsg:
+        nb = nbMsg
+    latest = allMsg[nbMsg]
+    first = allMsg[nbMsg-nb]
+    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=first.id)
     return msgList
