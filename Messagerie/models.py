@@ -54,7 +54,10 @@ class Conv_Admin(Conv_User):
 
 
 class File(models.Model):
+    title = models.CharField(max_length=200, default="file")
     file = models.FileField(upload_to='files', blank=True,)
+    Message = models.ManyToManyField('Message')
+
 @receiver(models.signals.post_delete, sender=File)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     if instance.file:
