@@ -54,10 +54,12 @@ class Conv_Admin(Conv_User):
 
 
 class File(models.Model):
-    title = models.CharField(max_length=200, default="file")
-    file = models.FileField(upload_to='files', blank=True,)
-    Message = models.ManyToManyField('Message')
-
+    Title = models.CharField(max_length=200, default="file")
+    file = models.FileField(upload_to='files', blank=True)
+    Message = models.ForeignKey('Message', on_delete=models.SET_NULL, blank=True, null=True)
+    Author = models.ForeignKey('users', on_delete=models.SET_NULL, blank=True, null=True)
+    dateAdded = models.DateTimeField(default=timezone.now)
+    directory = models.ForeignKey('Directory', on_delete=models.CASCADE, blank=True, null=True)
 @receiver(models.signals.post_delete, sender=File)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     if instance.file:
@@ -73,3 +75,6 @@ class Message(models.Model):
 
     def __str__(self):
         return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+
+class Directory(models.Model):
+    Title = models.CharField(max_length=100)

@@ -5,6 +5,7 @@ from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
 from django.shortcuts import redirect
+import re
 from django.template import loader
 
 class formsToInt(Enum):
@@ -81,6 +82,8 @@ def handle_form_response(request, user, conv, firstConv):
             return redirect('file')
         elif 'deleteFile' in request.POST:
             return deleteFile(request.POST['deleteFile'])
+        elif 'addDir' in request.POST:
+            return createDir(request)
 
 def disconnect(user):
     print(user.sessionid)
@@ -218,6 +221,8 @@ def sendMsg(user, request):
     #print(request.session["actualConv"])
     text = request.POST.get('text')
     print("Message sent")
+    files = []
+    Files = []
     try:
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
@@ -253,6 +258,21 @@ def sendMsg(user, request):
             toAdd = Message(Sender=user, Text=text, Date=timezone.now())
             toAdd.save()
             conv.Messages.add(toAdd)
+    try:
+        print("In try, files = ", end="")
+        print(files)
+        for i in range(len(files)):
+            files[i].Message = toAdd
+            files[i].Author = toAdd.Sender
+            files[i].save()
+            print(files[i])
+        print("Author = ", end="")
+        print(File.objects.get(id=30).Author)
+    except:
+        pass
+
+
+
 
 def showMessageList(conv):
    return conv.Messages.all().order_by('Date')
@@ -336,7 +356,38 @@ def deleteFile(id):
         if file is None:
             return -1
         else:
-            file.file.message
+            file.Message.files.remove(file)
+            print("Message contains :")
+            print(not file.Message.files.all().exists())
+            print(file.Message.Text)
+            if(not file.Message.files.all().exists() and file.Message.Text == ""):
+                file.Message.delete()
             file.delete()
     except:
         print("File does not exist or isn't reached")
+
+
+def move_File(file, path):
+    os.rename(file.file.path, path)
+    file.file.path = path
+    file.save()
+
+def createDir(request):
+    dirName = ""
+    if 'File_Path' in request.session:
+        basePath = request.session['File_Path']
+    else:
+        basePath = ""
+    valid = False
+    if 'directoryName' in request.POST:
+        dirName += request.POST['directoryName']
+        valid = re.match(dirName, '^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$')
+    if not valid:
+        dirName += 'New file'
+        number = Directory.objects.all().count()
+        if(number > 0):
+            dirName+="("+number+")"
+    dir = Directory()
+    dir.Title = dirName
+    os.mkdir(dirName, )
+    dir.save()

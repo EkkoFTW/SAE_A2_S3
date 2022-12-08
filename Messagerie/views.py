@@ -166,13 +166,7 @@ def file(request):
                 list_user = all_param[i]
     except:
         pass
-
-
     fileform = FileForm()
-
-
-
-
     if conv_list is not None:
         for i in conv_list:
             if (str(i.Name).__len__() > 12):
@@ -184,9 +178,9 @@ def file(request):
         path_to_file += request.POST['File_Path']
 
 
-    all_files, sub_dirs = get_all_files(conv, path_to_file)
+    all_files, list_subdirs = get_all_files(conv, path_to_file)
     print(all_files)
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv,
-               'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'sub_dir': sub_dirs}
+               'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'list_subdir': list_subdirs}
 
     return HttpResponse(template.render(context, request))

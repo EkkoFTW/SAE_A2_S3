@@ -32,15 +32,28 @@
             {% for file in list_files %}
             <form method="post">
                 {% csrf_token %}
-                <label> {{ file.file.name }} </label>
+                <label> {{ file.Title }} </label>
                 <button type="submit" name="selectFile" value="{{file.id}}"> Select </button>
                 <button type="submit" name="deleteFile" value="{{file.id}}"> Delete </button>
                 <br>
             </form>
             {% endfor %}
-
+            {% for dir in list_subdir %}
+            <form method="post">
+                {% csrf_token %}
+                <label> {{ dir }} </label>
+                <button type="submit" name="selectFile" value="{{dir}}"> Select </button>
+                <button type="submit" name="deleteFile" value="{{dir}}"> Delete </button>
+                <br>
+            </form>
+            {% endfor %}
+        </div>
         <div class="sub-container-right">
-
+            <form method="post">
+                {% csrf_token %}
+                <input type="text" id="dirName" name="directoryName">
+                <button type="submit" name="addDir">Ajouter un Dossier</button>
+            </form>
             {% if conv_list %}
                 <form method="post">
                     {% csrf_token %}
