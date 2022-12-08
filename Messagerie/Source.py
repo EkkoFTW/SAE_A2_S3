@@ -7,6 +7,7 @@ from .PerformanceProfiler import *
 from django.shortcuts import redirect
 import re
 from django.template import loader
+from django.conf import settings
 
 class formsToInt(Enum):
     deleteMessage = 0
@@ -373,7 +374,7 @@ def move_File(file, path):
     file.save()
 
 def createDir(request):
-    dirName = ""
+    dirName = settings.MEDIA_ROOT
     if 'File_Path' in request.session:
         basePath = request.session['File_Path']
     else:
@@ -386,8 +387,8 @@ def createDir(request):
         dirName += 'New file'
         number = Directory.objects.all().count()
         if(number > 0):
-            dirName+="("+number+")"
+            dirName += "("+number+")"
     dir = Directory()
     dir.Title = dirName
-    os.mkdir(dirName, )
+    os.mkdir(dirName)
     dir.save()
