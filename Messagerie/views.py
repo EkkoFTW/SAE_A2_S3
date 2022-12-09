@@ -116,7 +116,6 @@ def log(request):
         return HttpResponse(template.render(context, request))
 
 def file(request):
-
     context = {}
     template = loader.get_template('Messagerie/file.html')
     try:

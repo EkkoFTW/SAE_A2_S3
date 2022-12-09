@@ -5,7 +5,7 @@ from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
 from django.shortcuts import redirect
-import re
+from django.utils.text import get_valid_filename
 from django.template import loader
 from django.conf import settings
 
@@ -84,7 +84,7 @@ def handle_form_response(request, user, conv, firstConv):
         elif 'deleteFile' in request.POST:
             return deleteFile(request.POST['deleteFile'])
         elif 'addDir' in request.POST:
-            return createDir(request)
+            return createDir(request, user, conv)
 
 def disconnect(user):
     print(user.sessionid)
@@ -373,21 +373,20 @@ def move_File(file, path):
     file.file.path = path
     file.save()
 
-def createDir(request):
-    dirName = settings.MEDIA_ROOT
+def createDir(request, user, conv):
+    dirName = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\" + str(user.id) + "\\"
     if 'File_Path' in request.session:
-        basePath = request.session['File_Path']
-    else:
-        basePath = ""
-    valid = False
+        dirName += request.session['File_Path']
     if 'directoryName' in request.POST:
-        dirName += request.POST['directoryName']
-        valid = re.match(dirName, '^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$')
-    if not valid:
+        given_name = request.POST['directoryName']
+        given_name.replace("/", "\\")
+        dirName += get_valid_filename(given_name)
+    else:
         dirName += 'New file'
         number = Directory.objects.all().count()
-        if(number > 0):
-            dirName += "("+number+")"
+        if (number > 0):
+            dirName += "(" + number + ")"
+
     dir = Directory()
     dir.Title = dirName
     os.mkdir(dirName)
