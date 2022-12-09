@@ -1,3 +1,5 @@
+import os.path
+
 import Messagerie.models
 from django.contrib.auth import *
 from .models import *
@@ -386,10 +388,10 @@ def createDir(request, user, conv):
         if (number > 0):
             given_name += "(" + number + ")"
         dirName += given_name
-
-    dir = Directory()
-    dir.path = dirName
-    dir.title = given_name
-    dir.Conv_User = conv
-    os.mkdir(dirName)
-    dir.save()
+    if(not os.path.exists(dirName)):
+        dir = Directory()
+        dir.path = dirName
+        dir.title = given_name
+        dir.Conv_User = conv
+        os.mkdir(dirName)
+        dir.save()
