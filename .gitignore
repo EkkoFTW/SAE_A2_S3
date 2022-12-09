@@ -122,3 +122,5 @@ Control.system-ca-bundle
 GitHub.sublime-settings
 
 db.sqlite3
+/Messagerie/migrations/
+/.idea/dataSources.xml
