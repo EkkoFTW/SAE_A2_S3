@@ -1,3 +1,5 @@
+import os.path
+
 import Messagerie.models
 from django.contrib.auth import *
 from .models import *
@@ -6,7 +8,9 @@ from enum import Enum
 from .PerformanceProfiler import *
 from django.shortcuts import redirect
 
+from django.utils.text import get_valid_filename
 from django.template import loader
+from django.conf import settings
 
 class formsToInt(Enum):
     deleteMessage = 0
@@ -69,89 +73,64 @@ def handle_form_response(request, user, conv, firstConv):
             kick(conv, request.POST.get('kickUser'))
         elif "whisper" in request.POST:
             whisper(request.POST.get('whisper'), user, request, conv)
-        elif "toFiles" in request.POST:
-            toFiles(request, user, conv)
         elif "logout" in request.POST:
             logout(request)
             return redirect('log')
+
+        elif "toFiles" in request.POST:
+            # toFiles(request, user, conv)
+            return redirect('file')
+        elif 'deleteFile' in request.POST:
+            return deleteFile(request.POST['deleteFile'])
+        elif 'addDir' in request.POST:
+            return createDir(request, user, conv)
 
 def disconnect(user):
     print(user.sessionid)
     user.sessionid = "Empty"
     user.save()
 
-def toFiles(request, user, conv):
-    allFiles = []
-    allFiles = get_all_files(conv)
-    max = 0
-    id = int(-1)
-    try:
-        for file in allFiles:
-            if len(file.file.name.split("/")) -1 > max:
-                max = len(file.file.name.split("/")) -1
-                id = file.id
-    except:
-        print("No files in allFiles")
-    print(" Longer path lenght : " + str(max))
-    print(" File with longer path = " + str(id))
-    Paths = []
-
-    print("All paths :")
-    for i in range(max):
-        Paths.append([])
-    for file in allFiles:
-        for i in range(len(file.file.name.split("/"))-1):
-            if Paths[i].count(file.file.name.split("/")[i]) == 0:
-                Paths[i].append(file.file.name.split("/")[i])
-    for paths in Paths:
-        for namefiles in paths:
-            print(namefiles)
-
-
-
-
-
-
-def get_all_files(conv):
-    allFiles = []
-    allQSFiles = get_all_QS_files(conv)
-    for QS in allQSFiles:
-        for file in QS:
-            allFiles.append(file)
-    return allFiles
 def get_all_QS_files(conv):
     allMessages = conv.Messages.all()
-    allQSFiles = []
+    QSfiles = []
     for message in allMessages:
-        QSfiles = message.files.all()
-        if QSfiles.exists():
-            allQSFiles.append(QSfiles)
-    return allQSFiles
-"""def login(Username, Passwd):
-    perf = PerformanceProfiler("login")
-    #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
-    print("Login : " +Username + Passwd)
-    user = authenticate(username=Username, password=Passwd)
-    print(user)
-    if user is not None:
-        print('connection: succeed ---> ', end="")
-        return user
-    else:
-        print("connection: failed")
-        return -1
-"""
-def auto_login(Sessionid, Userid):
-    perf = PerformanceProfiler("auto_login")
-    if Sessionid is None or Userid is None:
-        return -1
-    user = Users.objects.get(email=Userid)
-    if user is None:
-        return -1
-    sessionid = user.sessionid
-    if sessionid == Sessionid:
-        return user
-    else:
-        return -1
+        if message.files.all() is not None:
+            QSfiles.append(message.files.all())
+    return QSfiles
+def get_files_in_conv_with_path(conv, start):
+    QSFilesList = get_all_QS_files(conv)
+    all_files = []
+    QSFilesPath = None
+    print("All files in conv : ", end='')
+    print(conv)
+    for QSFiles in QSFilesList:
+        print(QSFiles)
+        if QSFiles is not None:
+            QSFilesPath = []
+            for lone_file in QSFiles:
+                if lone_file.file.path.startswith(start):
+                    QSFilesPath.append(lone_file)
+        if QSFilesPath is not None:
+            for file in QSFilesPath:
+                all_files.append(file)
+    return all_files
+
+def get_all_files(conv, directory):
+    start = settings.MEDIA_ROOT + "\\files\\" + str(conv.id)
+    if directory is not None:
+        start = directory.path
+    all_files = get_files_in_conv_with_path(conv, start)
+    dirs = 0
+    start_path = start.split("/")
+    subdirs = []
+    for i in reversed(range(len(all_files))):
+        fpart = ""
+        path = all_files[i]
+        path = str(path.file).split(start)
+        fpart = fpart.split("/")
+        if(len(fpart) > 1):
+            all_files.remove(all_files[i])
+    return all_files, subdirs
 
 def createConv(user, convName):
     perf = PerformanceProfiler("createConv")
@@ -206,6 +185,9 @@ def sendMsg(user, request):
     perf = PerformanceProfiler("sendMsg")
     text = request.POST.get('text')
     toAdd = None
+    print("Message sent")
+    files = []
+    Files = []
     try:
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
@@ -217,6 +199,9 @@ def sendMsg(user, request):
             for f in Files:
                 toAdd = File()
                 toAdd.file = f
+                name = toAdd.file.name.split("/")
+                name = name[len(name)-1]
+                toAdd.file.name = str(conv.id) + "/" + str(user.pk) + "/" + name
                 files.append(toAdd)
                 files[i].save()
                 i += 1
@@ -240,9 +225,14 @@ def sendMsg(user, request):
             toAdd.save()
             conv.Messages.add(toAdd)
     try:
+      for i in range(len(files)):
+            files[i].Message = toAdd
+            files[i].Author = toAdd.Sender
+            files[i].save()
         return toAdd
     except:
         return -1
+ 
 
 def showMessageList(conv):
    return conv.Messages.all().order_by('Date')
@@ -354,3 +344,50 @@ def getLatestConv(user):
     except:
         conv = -1
     return conv
+    
+def deleteFile(id):
+    try:
+        file = File.objects.get(pk=id)
+        if file is None:
+            return -1
+        else:
+            file.Message.files.remove(file)
+            print("Message contains :")
+            print(not file.Message.files.all().exists())
+            print(file.Message.Text)
+            if(not file.Message.files.all().exists() and file.Message.Text == ""):
+                file.Message.delete()
+            file.delete()
+    except:
+        print("File does not exist or isn't reached")
+
+
+def move_File(file, path):
+    os.rename(file.file.path, path)
+    file.file.path = path
+    file.save()
+
+def createDir(request, user, conv):
+    given_name = ""
+    dirName = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
+    if 'File_Path' in request.session:
+        dirName += request.session['File_Path']
+    if 'directoryName' in request.POST:
+        given_name = request.POST['directoryName']
+        given_name.replace("/", "\\")
+        given_name = get_valid_filename(given_name)
+        dirName += given_name
+    else:
+        given_name = 'New file'
+        number = Directory.objects.all().count()
+        if (number > 0):
+            given_name += "(" + number + ")"
+        dirName += given_name
+    if(not os.path.exists(dirName)):
+        dir = Directory()
+        dir.path = dirName
+        dir.title = given_name
+        dir.Conv_User = conv
+        os.mkdir(dirName)
+        dir.save()
+
