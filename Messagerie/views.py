@@ -1,3 +1,6 @@
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.http import FileResponse
 from django.http import HttpRequest
@@ -7,21 +10,21 @@ import mimetypes
 from .forms import FileForm
 from .models import *
 from .Source import *
-from django.conf import settings
 from django.shortcuts import redirect
 
 #latest_message_list, conv_list, conv, list_user
 
 def index(request):
     perf = PerformanceProfiler("index")
-    try:
-        user = auto_login(request.session.session_key, request.session.get('userid'))
-        if user == -1:
-            print("no sessionid")
-            return redirect('log')
-    except:
+    if not request.user.is_authenticated:
         return redirect('log')
-
+    template = loader.get_template('Messagerie/Index.html')
+    if "logout" in request.POST:
+        logout(request)
+        return redirect('log')
+    fileform = FileForm()
+    context = {"fileform": fileform}
+    """
     conv_list = user.Conv_User.all()
     firstConv = None
     try:
@@ -61,7 +64,6 @@ def index(request):
     except:
         pass
 
-    fileform = FileForm()
     template = loader.get_template('Messagerie/Index.html')
     if conv is not None:
         latest_message_list = showMessageList(conv)
@@ -69,7 +71,7 @@ def index(request):
         conv_list = user.Conv_User.all()
     else:
         latest_message_list = list_user = None
-    context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
+    context = {"user": user, 'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv, 'fileform': fileform, 'list_user': list_user}
 
     if conv_list is not None:
         for i in conv_list:
@@ -77,44 +79,147 @@ def index(request):
                 i.Name = i.Name[:10]+"..."
 
     #Users.objects.create_user(username_value="test2", email="test2@test2.fr", password="test2", PP="")
+    """
     return HttpResponse(template.render(context, request))
 
 def log(request):
+    perf = PerformanceProfiler("log")
     context = {}
-    connected = False
     template = loader.get_template('Messagerie/Log.html')
-    user = -1
-    if request.session.session_key is None:
-        request.session.create()
-    try:
-        user = auto_login(request.session.session_key, request.session.get('userid'))
-    except:
-        print("error cookies sessionid")
-    if user != -1:
-        connected = True
-    else:
-        if "connect" in request.POST:
-            user = login(request.POST.get('usernameconnect'), request.POST.get('passwordconnect'))
-            if user != -1:
-                print("connected", end="")
-                connected = True
-                request.session['userid'] = user.email
-                try:
-                    user.sessionid = request.COOKIES.get('sessionid')
-                    user.save()
-                except:
-                    print('no sessionid set')
-                    user.sessionid = request.session.session_key
-                    user.save()
-            else:
-                print('no matching account')
-        elif "create" in request.POST:
-            Users.objects.create_user(request.POST['username'], request.POST['email'], request.POST['password'])
-            return HttpResponse(template.render(context, request))
-        if connected:
-            print("Connected")
+    if "connect" in request.POST:
+        username = request.POST['usernameconnect']
+        password = request.POST['passwordconnect']
+        user = authenticate(request, username=username, password=password)
+        if user is not None :
+            login(request, user)
             return redirect('index')
-        return HttpResponse(template.render(context, request))
+    elif "create" in request.POST:
+        username = request.POST['username']
+        email = request.POST['email']
+        user = Users.objects.create_user(username, email, request.POST['password'])
+        if user is not None:
+            login(request, user)
+            return redirect('index')
+    return HttpResponse(template.render(context, request))
+
+def handler(request):
+    perf = PerformanceProfiler("handler")
+    if request.method == 'POST':
+        type = request.POST['type']
+        if "sendMessage" == type:
+            user = getUser(request.user.id)
+            msg = sendMsg(user, request)
+            fileList = []
+            for fl in msg.files.all():
+                fileList.append(fl.file.url)
+            Dict = {"type": "sendMessage", "userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id}
+            return JsonResponse(data=Dict)
+        elif "fetchMsg" == type:
+            user = getUser(request.user.id)
+            try:
+                conv = getConv(request.session['actualConv'])
+            except:
+                conv = getLatestConv(user)[0]
+                request.session['actualConv'] = conv.id
+            if conv == -1:
+                return JsonResponse(data={'type': "non"})
+            msgList = fetchAskedMsg(conv)
+            Dict = {}
+            records = []
+            for msg in msgList:
+                fileList = []
+                for fl in msg.files.all():
+                    fileList.append(fl.file.url)
+                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+            Dict["msgList"] = records
+            return JsonResponse(data=Dict)
+        elif "fetchConv" == type:
+            user = getUser(request.user.id)
+            convList = user.Conv_User.all()
+            Dict = {}
+            records = []
+            for conv in convList:
+                records.append({"convid": conv.id, "convname": conv.Name})
+            Dict["convList"] = records
+            return JsonResponse(data=Dict)
+        elif "selectConv" == type:
+            convid = request.POST['convid']
+            user = getUser(request.user.id)
+            try:
+                actualConv = request.session['actualConv']
+            except:
+                request.session['actualConv'] = user.Conv_User.all()[:1][0].id
+                actualConv = request.session['actualConv']
+            conv = None
+            usercan = True
+            begin = False
+            if (convid == "Begin"):
+                try:
+                    conv = user.Conv_User.get(pk=actualConv)
+                    convid = conv.id
+                except:
+                    try:
+                        conv = user.Conv_User.all()[:1][0]
+                        convid = conv.id
+                    except:
+                        usercan = False
+                begin = True
+            else:
+                try:
+                    conv = user.Conv_User.get(pk=convid)
+                except:
+                    usercan = False
+            if (usercan or (begin and usercan)):
+                request.session['old_convid'] = actualConv
+                old_convid = request.session['old_convid']
+                request.session['actualConv'] = convid
+                return JsonResponse(data={"type": "selectConv", "convid": convid, "old_convid": old_convid, "convname": conv.Name, "response": True})
+            return JsonResponse(data={"type": "selectConv", "response": False})
+
+        elif "deleteConv" == type:
+            old_convid = -1
+            try:
+                old_convid = request.session['old_convid']
+            except:
+                pass
+            convid = request.POST['convid']
+            if request.session['actualConv'] == convid:
+                request.session['actualConv'] = ""
+            if old_convid == convid:
+                request.session['old_convid'] = ""
+            user = getUser(request.user.id)
+            kick(getConv(convid), user)
+            return JsonResponse(data={"type": "deleteConv", "convid": convid})
+        elif "createConv" == type:
+            user = getUser(request.user.id)
+            conv = createConv(user, request.POST['convname'])
+            return JsonResponse(data={"type": "createConv", "convid": conv.id, "convname": conv.Name})
+        elif "addUserToConv" == type:
+            convid = request.session['actualConv']
+            userEmail = request.POST['email']
+            try:
+                user = Users.objects.get(email=userEmail)
+                addUserObjToConv(getConv(convid), user)
+                return JsonResponse(data={"type": "addUserToConv", "convid": convid, "userid": user.id})
+            except:
+                return JsonResponse(data={"type": "userNotAdded"})
+        elif "askUser" == type:
+            convid = request.POST['convid']
+            conv = getConv(convid)
+            userList = conv.Users.all()
+            Dict = {}
+            records = []
+            for user in userList:
+                records.append({"username": user.username_value, "email": user.email, "userid": user.id, "PP": user.PP})
+            Dict['userList'] = records
+            return JsonResponse(data=Dict)
+        elif "askUserById" == type:
+            user = getUser(request.POST['userid'])
+            return JsonResponse(data={"username": user.username_value, "email": user.email, "PP": user.PP})
+        elif "askConvById" == type:
+            conv = getConv(request.POST['convid'])
+            return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
+    return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
     context = {}
