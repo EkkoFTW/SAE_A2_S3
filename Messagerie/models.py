@@ -40,8 +40,6 @@ class Users(AbstractBaseUser, PermissionsMixin):
 
 class Conv_User(models.Model):
     Name = models.CharField(max_length=20, default="Unnamed", null=True, blank=True)
-    privateKey = models.IntegerField()
-    publicKey = models.IntegerField()
     Messages = models.ManyToManyField('Message')
     Users = models.ManyToManyField(Users)
 

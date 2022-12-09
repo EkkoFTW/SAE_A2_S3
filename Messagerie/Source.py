@@ -4,6 +4,8 @@ from .models import *
 from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
+from django.shortcuts import redirect
+
 from django.template import loader
 
 class formsToInt(Enum):
@@ -70,7 +72,8 @@ def handle_form_response(request, user, conv, firstConv):
         elif "toFiles" in request.POST:
             toFiles(request, user, conv)
         elif "logout" in request.POST:
-            disconnect(user)
+            logout(request)
+            return redirect('log')
 
 def disconnect(user):
     print(user.sessionid)
@@ -124,7 +127,7 @@ def get_all_QS_files(conv):
         if QSfiles.exists():
             allQSFiles.append(QSfiles)
     return allQSFiles
-def login(Username, Passwd):
+"""def login(Username, Passwd):
     perf = PerformanceProfiler("login")
     #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
     print("Login : " +Username + Passwd)
@@ -136,7 +139,7 @@ def login(Username, Passwd):
     else:
         print("connection: failed")
         return -1
-
+"""
 def auto_login(Sessionid, Userid):
     perf = PerformanceProfiler("auto_login")
     if Sessionid is None or Userid is None:
@@ -150,32 +153,29 @@ def auto_login(Sessionid, Userid):
     else:
         return -1
 
-def createConv(request, user, convName):
+def createConv(user, convName):
     perf = PerformanceProfiler("createConv")
     if convName == "":
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
-    elif convName.__len__() < 25:
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName)
+        newConv = Conv_User(Name=user.get_username_value() + "'s Conv")
+    elif convName.__len__() < 30:
+        newConv = Conv_User(Name=convName)
     else:
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName[:24])
+        newConv = Conv_User(Name=convName[:24])
     newConv.save()
     user.Conv_User.add(newConv)
     user.save()
     newConv.Users.add(user)
     newConv.save()
-    request.session['actualConv'] = newConv.id
     return newConv
 
-def kick(conv, user_id):
+def kick(conv, user):
     perf = PerformanceProfiler("kick")
     try:
-        if(user_id):
-            rm = conv.Users.get(id=user_id)
-            conv.Users.remove(rm)
-            rm.Conv_User.remove(conv)
-            if not conv.Users.all().exists():
-                deleteConv(conv)
-            conv.Name = ""
+        conv.Users.remove(user)
+        user.Conv_User.remove(conv)
+        if not conv.Users.all().exists():
+            deleteConv(conv)
+        conv.Name = ""
     except:
         return
 
@@ -347,3 +347,10 @@ def fetchAskedMsg(conv, begin=0,nb=20):
     first = allMsg[nbMsg-nb]
     msgList = allMsg.filter(pk__lte=latest.id, pk__gte=first.id)
     return msgList
+
+def getLatestConv(user):
+    try:
+        conv = user.Conv_User.all()[:1]
+    except:
+        conv = -1
+    return conv

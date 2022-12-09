@@ -1,29 +1,10 @@
 <div id="msgList">
-  {% if latest_message_list %}
-
-  <!--<ul>{% for Message in latest_message_list %}
-    <li><p>{{Message.Date}}</p>
-      <form method="post">
-        {% csrf_token %}
-        <a href="/Messagerie/{{ Message.Sender.username_value }}/">{{ Message.Sender.username_value }}</a>
-        <p> {{ Message.Text }} </p>
-        {% for Image in Message.files.all %}
-        <img class="aImg" src="{{ Image.file.url }}" alt="{{ Image.file }}">
-        {% endfor %}
-        <button type="submit" name="deleteMessage" value="{{ Message.id }}"> Delete </button>
-        <button type="submit" name="editMessage" value="{{ Message.id }}"> Edit </button>
-        <button type="submit" name="replyMessage" value="{{ Message.id }}"> Reply </button>
-      </form>
-      <br>
-      {% endfor %}-->
-    </li>
+  <ul id='msgUl'>
   </ul>
-  {% else %}
-  <p>No Message are available.</p>
-  {% endif %}
 </div>
-<!--<form method="post" enctype="multipart/form-data">-->
-  {% csrf_token %}
+<!--<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}-->
+<div id="sub-container-main-bottom">
   <div id="msgSender-container">
     <div id="msgSender-left">
       {{ fileform }}
@@ -35,4 +16,5 @@
     </div>
   </div>
   <button type="submit" id="messageSubmit" name="sendMessage"> Send </button>
+</div>
 <!--</form>-->
