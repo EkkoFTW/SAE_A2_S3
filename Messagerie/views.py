@@ -1,8 +1,9 @@
 from django.http import HttpResponse
+from django.http import FileResponse
 from django.http import HttpRequest
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
-
+import mimetypes
 from .forms import FileForm
 from .models import *
 from .Source import *
@@ -168,18 +169,27 @@ def file(request):
     fileform = FileForm()
     if conv_list is not None:
         for i in conv_list:
-            if (str(i.Name).__len__() > 12):
+            if (len(str(i.Name)) > 12):
                 i.Name = i.Name[:10] + "..."
+    current_dir = None
+    if 'current_dir' in request.session:
+        current_dir = request.session['current_dir']
+    all_files, list_subdirs = get_all_files(conv, current_dir)
 
-
-    path_to_file = path_to_file = "files/" + str(conv.id) + "/" + str(user.pk) + "/"
-    if 'filePath' in request.POST:
-        path_to_file += request.POST['File_Path']
-
-
-    all_files, list_subdirs = get_all_files(conv, path_to_file)
-    print(all_files)
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv,
                'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'list_subdir': list_subdirs}
 
     return HttpResponse(template.render(context, request))
+
+def download_file(request, filepath):
+    if "downloadFile" in request.POST:
+        file = request.POST['downloadFile']
+        filename = file.Title
+        fl_path = file.file.path
+        fl = open(fl_path, 'rb')
+        mime_type, _ = mimetypes.guess_type(fl_path)
+        response = FileResponse(fl)
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
+    else:
+        return index(request)

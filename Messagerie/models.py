@@ -77,4 +77,6 @@ class Message(models.Model):
         return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
 
 class Directory(models.Model):
-    Title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100)
+    path = models.CharField(max_length=300)
+    Conv_User = models.ForeignKey("Conv_User", on_delete=models.CASCADE)

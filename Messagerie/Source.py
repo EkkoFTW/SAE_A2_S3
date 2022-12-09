@@ -105,29 +105,31 @@ def get_files_in_conv_with_path(conv, start):
     print("All files in conv : ", end='')
     print(conv)
     for QSFiles in QSFilesList:
+        print(QSFiles)
         if QSFiles is not None:
+            QSFilesPath = []
             for lone_file in QSFiles:
-                QSFilesPath = QSFiles.filter(file__iregex="^" + start)
+                if lone_file.file.path.startswith(start):
+                    QSFilesPath.append(lone_file)
         if QSFilesPath is not None:
             for file in QSFilesPath:
                 all_files.append(file)
-                print(file.file)
     return all_files
 
-def get_all_files(conv, start):
+def get_all_files(conv, directory):
+    start = settings.MEDIA_ROOT + "\\files\\" + str(conv.id)
+    if directory is not None:
+        start = directory.path
     all_files = get_files_in_conv_with_path(conv, start)
+    dirs = 0
     start_path = start.split("/")
     subdirs = []
     for i in reversed(range(len(all_files))):
         fpart = ""
         path = all_files[i]
         path = str(path.file).split(start)
-        for part in path:
-            fpart += part
         fpart = fpart.split("/")
         if(len(fpart) > 1):
-            if fpart[0] not in subdirs:
-                subdirs.append(fpart[0])
             all_files.remove(all_files[i])
     return all_files, subdirs
 
@@ -260,15 +262,10 @@ def sendMsg(user, request):
             toAdd.save()
             conv.Messages.add(toAdd)
     try:
-        print("In try, files = ", end="")
-        print(files)
         for i in range(len(files)):
             files[i].Message = toAdd
             files[i].Author = toAdd.Sender
             files[i].save()
-            print(files[i])
-        print("Author = ", end="")
-        print(File.objects.get(id=30).Author)
     except:
         pass
 
@@ -374,20 +371,25 @@ def move_File(file, path):
     file.save()
 
 def createDir(request, user, conv):
-    dirName = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\" + str(user.id) + "\\"
+    given_name = ""
+    dirName = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
     if 'File_Path' in request.session:
         dirName += request.session['File_Path']
     if 'directoryName' in request.POST:
         given_name = request.POST['directoryName']
         given_name.replace("/", "\\")
-        dirName += get_valid_filename(given_name)
+        given_name = get_valid_filename(given_name)
+        dirName += given_name
     else:
-        dirName += 'New file'
+        given_name = 'New file'
         number = Directory.objects.all().count()
         if (number > 0):
-            dirName += "(" + number + ")"
+            given_name += "(" + number + ")"
+        dirName += given_name
 
     dir = Directory()
-    dir.Title = dirName
+    dir.path = dirName
+    dir.title = given_name
+    dir.Conv_User = conv
     os.mkdir(dirName)
     dir.save()
