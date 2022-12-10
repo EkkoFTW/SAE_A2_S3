@@ -7,6 +7,7 @@ from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
 from django.shortcuts import redirect
+
 from django.utils.text import get_valid_filename
 from django.template import loader
 from django.conf import settings
@@ -45,11 +46,6 @@ def handle_form_response(request, user, conv, firstConv):
                     conv = firstConv
                     all_param.append(conv)
                     return all_param
-        elif "sendMessage" in request.POST:
-            try:
-                sendMsg(user, request)
-            except:
-                pass
         elif "deleteConv" in request.POST:
             deleteConvID(request.POST.get('deleteConv'))
             if request.session['actualConv'] == request.POST.get('deleteConv'):
@@ -79,7 +75,8 @@ def handle_form_response(request, user, conv, firstConv):
         elif "whisper" in request.POST:
             whisper(request.POST.get('whisper'), user, request, conv)
         elif "logout" in request.POST:
-            disconnect(user)
+            logout(request)
+            return redirect('log')
 
         elif "toFiles" in request.POST:
             # toFiles(request, user, conv)
@@ -168,11 +165,11 @@ def auto_login(Sessionid, Userid):
 def createConv(request, user, convName):
     #perf = PerformanceProfiler("createConv")
     if convName == "":
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=user.get_username_value() + "'s Conv")
-    elif convName.__len__() < 25:
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName)
+        newConv = Conv_User(Name=user.get_username_value() + "'s Conv")
+    elif convName.__len__() < 30:
+        newConv = Conv_User(Name=convName)
     else:
-        newConv = Conv_User(privateKey=1, publicKey=1, Name=convName[:24])
+        newConv = Conv_User(Name=convName[:24])
     newConv.save()
     user.Conv_User.add(newConv)
     user.save()
@@ -191,13 +188,11 @@ def createConv(request, user, convName):
 def kick(conv, user_id):
     #perf = PerformanceProfiler("kick")
     try:
-        if(user_id):
-            rm = conv.Users.get(id=user_id)
-            conv.Users.remove(rm)
-            rm.Conv_User.remove(conv)
-            if not conv.Users.all().exists():
-                deleteConv(conv)
-            conv.Name = ""
+        conv.Users.remove(user)
+        user.Conv_User.remove(conv)
+        if not conv.Users.all().exists():
+            deleteConv(conv)
+        conv.Name = ""
     except:
         return
 
@@ -230,6 +225,7 @@ def sendMsg(user, request):
     #print("Actual session to send message : ", end="")
     #print(request.session["actualConv"])
     text = request.POST.get('text')
+    toAdd = None
     print("Message sent")
     files = []
     Files = []
@@ -237,7 +233,7 @@ def sendMsg(user, request):
         fileform = FileForm(request.FILES)
         conv = request.session["actualConv"]
         if conv is not None and fileform.is_valid():
-            Files = request.FILES.getlist('file')
+            Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
             dir_path = conv.dir.path + user.id + "\\"
             dir = Directory.objects.filter(path=dir_path)
@@ -272,20 +268,20 @@ def sendMsg(user, request):
                 conv.Messages.add(toAdd)
     except:
         if text is not None and conv is not None:
+            conv = request.session['actualConv']
             conv = Conv_User.objects.get(id=conv)
             toAdd = Message(Sender=user, Text=text, Date=timezone.now())
             toAdd.save()
             conv.Messages.add(toAdd)
     try:
-        for i in range(len(files)):
+      for i in range(len(files)):
             files[i].Message = toAdd
             files[i].Author = toAdd.Sender
             files[i].save()
+        return toAdd
     except:
-        pass
-
-
-
+        return -1
+ 
 
 def showMessageList(conv):
    return conv.Messages.all().order_by('Date')
@@ -368,6 +364,41 @@ def deleteMsg(msg):
         #print(perf.space() + "msg does not exist")
         print("msg does not exist")
 
+def getUser(user_id):
+    perf = PerformanceProfiler("getUser")
+    try:
+        return Users.objects.get(pk=user_id)
+    except:
+        return -1
+
+def getConv(conv_id):
+    perf = PerformanceProfiler("getConv")
+    try:
+        return Conv_User.objects.get(pk=conv_id)
+    except:
+        return -1
+
+def fetchAskedMsg(conv, begin=0,nb=20):
+    allMsg = conv.Messages.all()
+    nbMsg = allMsg.count()-1
+    nbMsg = nbMsg - begin
+
+    if nbMsg < 0:
+        return []
+    if nb > nbMsg:
+        nb = nbMsg
+    latest = allMsg[nbMsg]
+    first = allMsg[nbMsg-nb]
+    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=first.id)
+    return msgList
+
+def getLatestConv(user):
+    try:
+        conv = user.Conv_User.all()[:1]
+    except:
+        conv = -1
+    return conv
+    
 def deleteFile(id):
     try:
         file = File.objects.get(id=id)
