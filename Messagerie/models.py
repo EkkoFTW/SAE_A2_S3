@@ -5,6 +5,7 @@ from django.utils import timezone
 from .managers import CustomUserManager
 from django.dispatch import receiver
 import os
+import shutil
 from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 from Messagerie.PerformanceProfiler import PerformanceProfiler
@@ -45,6 +46,7 @@ class Conv_User(models.Model):
     Messages = models.ManyToManyField('Message')
     Users = models.ManyToManyField(Users)
 
+
     def __str__(self):
         return self.Name + " " + str(self.id)
 
@@ -59,11 +61,13 @@ class File(models.Model):
     Message = models.ForeignKey('Message', on_delete=models.SET_NULL, blank=True, null=True)
     Author = models.ForeignKey('users', on_delete=models.SET_NULL, blank=True, null=True)
     dateAdded = models.DateTimeField(default=timezone.now)
-    directory = models.ForeignKey('Directory', on_delete=models.CASCADE, blank=True, null=True)
 @receiver(models.signals.post_delete, sender=File)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     if instance.file:
         if os.path.isfile(instance.file.path):
+            dirs = File.objects.filter(path__contains=instance.path)
+            for dir in dirs:
+                dir.delete()
             os.remove(instance.file.path)
 
 class Message(models.Model):
@@ -78,5 +82,12 @@ class Message(models.Model):
 
 class Directory(models.Model):
     title = models.CharField(max_length=100)
-    path = models.CharField(max_length=300)
+    path = models.CharField(max_length=300, unique=True)
     Conv_User = models.ForeignKey("Conv_User", on_delete=models.CASCADE)
+    parent = models.ForeignKey("Directory", on_delete=models.CASCADE, null=True, blank=True)
+    child_files = models.ForeignKey("File", on_delete=models.DO_NOTHING, null=True, blank=True)
+
+@receiver(models.signals.post_delete, sender=Directory)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    if os.path.isdir(instance.path):
+        shutil.rmtree(instance.path)
