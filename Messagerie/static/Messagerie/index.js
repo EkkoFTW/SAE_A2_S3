@@ -255,7 +255,9 @@ document.getElementById("addToConv").onclick = function (){
             'X-CSRFToken' : csrf_token,
         },
         success: function (response){
-            ws.send(JSON.stringify(response));
+            if (response.response) {
+                ws.send(JSON.stringify(response));
+            }
         }
     })
 }

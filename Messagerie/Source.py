@@ -176,10 +176,13 @@ def addUserToConv(Conv, user):
 def addUserObjToConv(Conv, user):
     perf = PerformanceProfiler("addUserObjToConv")
     try:
+        Conv.Users.get(id=user.id)
+        return False
+    except:
         Conv.Users.add(user)
         user.Conv_User.add(Conv)
-    except:
-        return
+        return True
+
 
 def sendMsg(user, request):
     perf = PerformanceProfiler("sendMsg")
@@ -225,7 +228,7 @@ def sendMsg(user, request):
             toAdd.save()
             conv.Messages.add(toAdd)
     try:
-      for i in range(len(files)):
+        for i in range(len(files)):
             files[i].Message = toAdd
             files[i].Author = toAdd.Sender
             files[i].save()

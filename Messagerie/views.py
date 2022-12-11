@@ -199,8 +199,9 @@ def handler(request):
             userEmail = request.POST['email']
             try:
                 user = Users.objects.get(email=userEmail)
-                addUserObjToConv(getConv(convid), user)
-                return JsonResponse(data={"type": "addUserToConv", "convid": convid, "userid": user.id})
+                if addUserObjToConv(getConv(convid), user):
+                    return JsonResponse(data={"type": "addUserToConv", "convid": convid, "userid": user.id, "response": True})
+                return JsonResponse(data={"type": "addUserToConv", "response": False})
             except:
                 return JsonResponse(data={"type": "userNotAdded"})
         elif "askUser" == type:
@@ -222,16 +223,11 @@ def handler(request):
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
+    user = request.user
+    if not user.is_authenticated:
+        return redirect('log')
     context = {}
     template = loader.get_template('Messagerie/file.html')
-    try:
-        user = auto_login(request.session.session_key, request.session.get('userid'))
-        if user == -1:
-            print("no sessionid")
-            return redirect('log')
-    except:
-        return redirect('log')
-
     conv_list = user.Conv_User.all()
     firstConv = None
     latest_message_list = None
