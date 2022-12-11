@@ -112,23 +112,15 @@ def get_all_QS_files(conv):
 def get_all_files(conv, directory):
     if conv is not None:
         subdirs = []
-        print(conv)
-        print(type(conv))
-        print(conv.id)
-        print(directory)
-        print(type(directory))
         if directory is None or directory == "":
-            print('dir none or "" ')
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
-            print('here')
         else:
             directory = getDir(directory, conv)
+        print(directory)
         dirs = Directory.objects.filter(parent=directory)
         for dir in dirs:
             subdirs.append(dir)
-        all_qs_files = []
-        if directory.child_files is not None:
-            all_qs_files = directory.child_files.all()
+        all_qs_files = File.objects.filter(directory=directory)
         all_files = []
         for file in all_qs_files:
             all_files.append(file)
@@ -228,15 +220,16 @@ def sendMsg(user, request):
         if conv is not None and fileform.is_valid():
             Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
-            dir_path = settings.MEDIA_ROOT + "\\" + str(conv.id) + "\\" + str(user.id) + "\\"
+            dir_path = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\" + str(user.id) + "\\"
             dir = Directory.objects.filter(path=dir_path)
             if dir.exists():
                 dir = dir[0]
             else:
                 try:
-                    dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=settings.MEDIA_ROOT + "\\" + str(conv.id) + "\\")[0])
+                    dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0])
                 except:
                     print("Dir conv does not exist")
+            print(dir)
             i = 0
             files = []
             for f in Files:

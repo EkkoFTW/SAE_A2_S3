@@ -57,14 +57,13 @@ class File(models.Model):
     Message = models.ForeignKey('Message', on_delete=models.SET_NULL, blank=True, null=True)
     Author = models.ForeignKey('users', on_delete=models.SET_NULL, blank=True, null=True)
     dateAdded = models.DateTimeField(default=timezone.now)
+    directory = models.ForeignKey("Directory", on_delete=models.CASCADE, null=True, blank=True)
 @receiver(models.signals.post_delete, sender=File)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
-    if instance.file:
-        if os.path.isfile(instance.file.path):
-            dirs = File.objects.filter(path__contains=instance.path)
-            for dir in dirs:
-                dir.delete()
-            os.remove(instance.file.path)
+    try:
+        os.remove(instance.file.path)
+    except:
+        print("Delete on file probably called while directory already deleted")
 
 class Message(models.Model):
     Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
@@ -81,9 +80,9 @@ class Directory(models.Model):
     path = models.CharField(max_length=300, unique=True)
     Conv_User = models.ForeignKey("Conv_User", on_delete=models.CASCADE)
     parent = models.ForeignKey("Directory", on_delete=models.CASCADE, null=True, blank=True)
-    child_files = models.ForeignKey("File", on_delete=models.DO_NOTHING, null=True, blank=True)
+
 
 @receiver(models.signals.post_delete, sender=Directory)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     if os.path.isdir(instance.path):
-        shutil.rmtree(instance.path)
+            shutil.rmtree(instance.path)
