@@ -225,7 +225,7 @@ def sendMsg(user, request):
             toAdd.save()
             conv.Messages.add(toAdd)
     try:
-      for i in range(len(files)):
+        for i in range(len(files)):
             files[i].Message = toAdd
             files[i].Author = toAdd.Sender
             files[i].save()
