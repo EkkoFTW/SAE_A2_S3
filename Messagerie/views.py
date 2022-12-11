@@ -198,7 +198,7 @@ def handler(request):
             return JsonResponse(data={"type": "deleteConv", "convid": convid})
         elif "createConv" == type:
             user = getUser(request.user.id)
-            conv = createConv(user, request.POST['convname'])
+            conv = createConv(request, user, request.POST['convname'])
             return JsonResponse(data={"type": "createConv", "convid": conv.id, "convname": conv.Name})
         elif "addUserToConv" == type:
             convid = request.session['actualConv']
@@ -279,12 +279,24 @@ def file(request):
             if (len(str(i.Name)) > 12):
                 i.Name = i.Name[:10] + "..."
     current_dir = None
+    print(request.session)
     if 'current_dir' in request.session:
+        print(request.session['current_dir'])
         current_dir = request.session['current_dir']
-    all_files, list_subdirs = get_all_files(conv, current_dir)
+        print(current_dir)
+    all_files = []
+    list_subdirs = []
+    try:
+        all_files, list_subdirs = get_all_files(conv, current_dir)
+        previous_dir = None
+        if list_subdirs is not None and len(list_subdirs) == 0 and current_dir is not None:
+            previous_dir = getDir(current_dir, conv)
+    except:
+        print("Conv deleted and not updated or unknown on get_all_files execution views.file()")
 
     context = {'latest_message_list': latest_message_list, 'conv_list': conv_list, 'conv_shown': conv,
-               'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'list_subdir': list_subdirs}
+               'fileform': fileform, 'list_user': list_user, 'list_files': all_files, 'list_subdir': list_subdirs,
+               'current_dir': current_dir}
 
     return HttpResponse(template.render(context, request))
 

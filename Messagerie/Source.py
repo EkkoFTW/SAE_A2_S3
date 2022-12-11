@@ -11,6 +11,7 @@ from django.shortcuts import redirect
 from django.utils.text import get_valid_filename
 from django.template import loader
 from django.conf import settings
+import shutil
 
 class formsToInt(Enum):
     deleteMessage = 0
@@ -22,7 +23,7 @@ class formsToInt(Enum):
 
 
 def handle_uploaded_file(f, name):
-    perf = PerformanceProfiler("handle_uploaded_file")
+    #perf = PerformanceProfiler("handle_uploaded_file")
     with open("media\\files\\"+name, 'wb+') as destination:
         for chunk in f.chunks():
             destination.write(chunk)
@@ -83,7 +84,17 @@ def handle_form_response(request, user, conv, firstConv):
         elif 'deleteFile' in request.POST:
             return deleteFile(request.POST['deleteFile'])
         elif 'addDir' in request.POST:
-            return createDir(request, user, conv)
+            return createDirConv(request, user, conv)
+        elif 'deleteDir' in request.POST:
+            return deleteDir(request.POST['deleteDir'], conv)
+        elif 'enterDir' in request.POST:
+            return enterDir(request, request.POST['enterDir'], conv)
+        elif 'current_dir' in request.POST:
+            print(str(request.POST['current_dir']))
+            return previousDir(request, request.POST['current_dir'], conv)
+
+def previousDir(request, previous_dir, conv):
+    request.session['current_dir'] = previous_dir
 
 def disconnect(user):
     print(user.sessionid)
@@ -97,43 +108,62 @@ def get_all_QS_files(conv):
         if message.files.all() is not None:
             QSfiles.append(message.files.all())
     return QSfiles
-def get_files_in_conv_with_path(conv, start):
-    QSFilesList = get_all_QS_files(conv)
-    all_files = []
-    QSFilesPath = None
-    print("All files in conv : ", end='')
-    print(conv)
-    for QSFiles in QSFilesList:
-        print(QSFiles)
-        if QSFiles is not None:
-            QSFilesPath = []
-            for lone_file in QSFiles:
-                if lone_file.file.path.startswith(start):
-                    QSFilesPath.append(lone_file)
-        if QSFilesPath is not None:
-            for file in QSFilesPath:
-                all_files.append(file)
-    return all_files
 
 def get_all_files(conv, directory):
-    start = settings.MEDIA_ROOT + "\\files\\" + str(conv.id)
-    if directory is not None:
-        start = directory.path
-    all_files = get_files_in_conv_with_path(conv, start)
-    dirs = 0
-    start_path = start.split("/")
-    subdirs = []
-    for i in reversed(range(len(all_files))):
-        fpart = ""
-        path = all_files[i]
-        path = str(path.file).split(start)
-        fpart = fpart.split("/")
-        if(len(fpart) > 1):
-            all_files.remove(all_files[i])
-    return all_files, subdirs
+    if conv is not None:
+        subdirs = []
+        if directory is None:
+            directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
+        else:
+            directory = getDir(directory, conv)
+        dirs = Directory.objects.filter(parent=directory)
+        for dir in dirs:
+            subdirs.append(dir)
+        all_qs_files = []
+        if directory.child_files is not None:
+            all_qs_files = directory.child_files.all()
+        all_files = []
+        for file in all_qs_files:
+            all_files.append(file)
+        return all_files, subdirs
+    else:
+        return None, None
 
-def createConv(user, convName):
-    perf = PerformanceProfiler("createConv")
+
+def login(Username, Passwd):
+    #perf = PerformanceProfiler("login")
+    #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
+    print("Login : " +Username + Passwd)
+    user = authenticate(username=Username, password=Passwd)
+    print(user)
+    if user is not None:
+        print('connection: succeed ---> ', end="")
+        return user
+    else:
+        print("connection: failed")
+        return -1
+
+def auto_login(Sessionid, Userid):
+    #perf = PerformanceProfiler("auto_login")
+    #print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
+    if Sessionid is None or Userid is None:
+        #print("Nop")
+        return -1
+    user = Users.objects.get(email=Userid)
+    if user is None:
+        #print("userid dosn't exist")
+        #print("")
+        return -1
+    sessionid = user.sessionid
+    if sessionid == Sessionid:
+        #print("Connected to " + str(user))
+        return user
+    else:
+        #print("Wrong SessionID for " + str(user))
+        return -1
+
+def createConv(request, user, convName):
+    #perf = PerformanceProfiler("createConv")
     if convName == "":
         newConv = Conv_User(Name=user.get_username_value() + "'s Conv")
     elif convName.__len__() < 30:
@@ -145,12 +175,18 @@ def createConv(user, convName):
     user.save()
     newConv.Users.add(user)
     newConv.save()
+    newDir = createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\", newConv.id, newConv, None)
+    newConv.dir = newDir
+    newConv.save()
+    request.session['actualConv'] = newConv.id
+
+    createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\", user.id, newConv, newDir)
+    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\")
+    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\")
     return newConv
 
-def kick(conv, user):
-    perf = PerformanceProfiler("kick")
-    print(conv)
-    print(user)
+def kick(conv, user_id):
+    #perf = PerformanceProfiler("kick")
     try:
         conv.Users.remove(user)
         user.Conv_User.remove(conv)
@@ -161,33 +197,33 @@ def kick(conv, user):
         return
 
 def convCleaner():
-    perf = PerformanceProfiler("convCleaner")
+    #perf = PerformanceProfiler("convCleaner")
     for conv in Conv_User.objects.all():
         if not conv.Users.all().exists():
             deleteConv(conv)
 
 def addUserToConv(Conv, user):
-    perf = PerformanceProfiler("addUserToConv")
+    #perf = PerformanceProfiler("addUserToConv")
     try:
         user_to_add = Users.objects.get(email=user)
         Conv.Users.add(user_to_add)
         user_to_add.Conv_User.add(Conv)
+        os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(Conv.id) + "\\" + str(user.id) + "\\")
     except:
         return
 
 def addUserObjToConv(Conv, user):
-    perf = PerformanceProfiler("addUserObjToConv")
+    #perf = PerformanceProfiler("addUserObjToConv")
     try:
-        Conv.Users.get(id=user.id)
-        return False
-    except:
         Conv.Users.add(user)
         user.Conv_User.add(Conv)
-        return True
-
+    except:
+        return
 
 def sendMsg(user, request):
-    perf = PerformanceProfiler("sendMsg")
+    #perf = PerformanceProfiler("sendMsg")
+    #print("Actual session to send message : ", end="")
+    #print(request.session["actualConv"])
     text = request.POST.get('text')
     toAdd = None
     print("Message sent")
@@ -199,6 +235,13 @@ def sendMsg(user, request):
         if conv is not None and fileform.is_valid():
             Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
+            dir_path = conv.dir.path + user.id + "\\"
+            dir = Directory.objects.filter(path=dir_path)
+            if dir.exists():
+                dir = dir[0]
+            else:
+                os.mkdir(dir_path)
+                dir = Directory(path=dir_path)
             i = 0
             files = []
             for f in Files:
@@ -207,6 +250,7 @@ def sendMsg(user, request):
                 name = toAdd.file.name.split("/")
                 name = name[len(name)-1]
                 toAdd.file.name = str(conv.id) + "/" + str(user.pk) + "/" + name
+                toAdd.directory = dir
                 files.append(toAdd)
                 files[i].save()
                 i += 1
@@ -244,7 +288,7 @@ def showMessageList(conv):
 
 
 def whisper(Receiver, Sender, request, baseConv):
-    perf = PerformanceProfiler("whisper")
+    #perf = PerformanceProfiler("whisper")
     list = Sender.Conv_User.all()
     print(list)
     Receiver = Users.objects.get(pk=Receiver)
@@ -260,7 +304,7 @@ def whisper(Receiver, Sender, request, baseConv):
 
 
 def deleteConvID(IDconv):
-    perf = PerformanceProfiler("deleteConvID")
+    #perf = PerformanceProfiler("deleteConvID")
     try:
         conv = Conv_User.objects.get(pk=IDconv)
         if conv is None:
@@ -268,25 +312,28 @@ def deleteConvID(IDconv):
         else:
             for msg in conv.Messages.all():
                 deleteMsg(msg)
+            if os.path.isdir(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"):
+                shutil.rmtree(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\")
             conv.delete()
     except:
         print("Conv does not exist")
 
 
 def deleteConv(conv):
-    perf = PerformanceProfiler("deleteConv")
+    #perf = PerformanceProfiler("deleteConv")
     try:
         if conv is None:
             return -1
         else:
             for msg in conv.Messages.all():
                 deleteMsg(msg)
+            shutil.rmtree(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\")
             conv.delete()
     except:
         print("Conv does not exist")
 
 def msgCleaner():
-    perf = PerformanceProfiler("msgCleaner")
+    #perf = PerformanceProfiler("msgCleaner")
     msgList = Message.objects.all()
     convList = Conv_User.objects.all()
     tabMsg = [False]*(((Message.objects.order_by('-id')[:1])[0].id)+1)
@@ -299,21 +346,23 @@ def msgCleaner():
             deleteMsg(msg)
 
 def deleteMsgID(msgID):
-    perf = PerformanceProfiler("deleteMsgID")
+    #perf = PerformanceProfiler("deleteMsgID")
     try:
         obj = Message.objects.get(pk=msgID)
         obj.files.all().delete()
         obj.delete()
     except:
-        print(perf.space() + "msg does not exist")
+        #print(perf.space() + )
+        print("msg does not exist")
 
 def deleteMsg(msg):
-    perf = PerformanceProfiler("deleteMsg")
+    #perf = PerformanceProfiler("deleteMsg")
     try:
         msg.files.all().delete()
         msg.delete()
     except:
-        print(perf.space() + "msg does not exist")
+        #print(perf.space() + "msg does not exist")
+        print("msg does not exist")
 
 def getUser(user_id):
     perf = PerformanceProfiler("getUser")
@@ -352,7 +401,7 @@ def getLatestConv(user):
     
 def deleteFile(id):
     try:
-        file = File.objects.get(pk=id)
+        file = File.objects.get(id=id)
         if file is None:
             return -1
         else:
@@ -372,27 +421,69 @@ def move_File(file, path):
     file.file.path = path
     file.save()
 
-def createDir(request, user, conv):
+def createDirConv(request, user, conv):
+    parent = None
     given_name = ""
-    dirName = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
+    if "current_dir" in request.session:
+        parent = getDir(request.session["current_dir"], conv)
+        dirPath = parent.path
+    else:
+        dirPath = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
     if 'File_Path' in request.session:
-        dirName += request.session['File_Path']
-    if 'directoryName' in request.POST:
+        dirPath += request.session['File_Path']
+    if 'directoryName' in request.POST and request.POST['directoryName'] != "":
         given_name = request.POST['directoryName']
         given_name.replace("/", "\\")
         given_name = get_valid_filename(given_name)
-        dirName += given_name
+        dirPath += given_name + "\\"
     else:
         given_name = 'New file'
         number = Directory.objects.all().count()
         if (number > 0):
-            given_name += "(" + number + ")"
-        dirName += given_name
-    if(not os.path.exists(dirName)):
-        dir = Directory()
-        dir.path = dirName
-        dir.title = given_name
-        dir.Conv_User = conv
-        os.mkdir(dirName)
-        dir.save()
+            given_name += "(" + str(number) + ")"
+        dirPath += given_name
+    createDir(dirPath, given_name, conv, parent)
 
+def createDir(path, title, conv, parent):
+    if not os.path.isdir(path):
+        dir = Directory()
+        dir.path = path
+        dir.title = title
+        dir.Conv_User = conv
+        dir.parent = parent
+        os.makedirs(path)
+        dir.save()
+        return dir
+    else:
+        dirs = Directory.objects.filter(path=path)
+        if dirs.exists():
+            return dirs[0]
+        else:
+            dir = Directory()
+            dir.path = path
+            dir.title = title
+            dir.Conv_User = conv
+            dir.save()
+            return dir
+
+
+def deleteDir(id, conv):
+    if conv is not None:
+        dirs = Directory.objects.filter(Conv_User=conv)
+        for dir in dirs:
+            if str(dir.id) == id:
+                dir.delete()
+
+
+def enterDir(request, id, conv):
+    dir = getDir(id, conv)
+    request.session['current_dir'] = dir.id
+
+def getDir(id, conv):
+    if id is not None and conv is not None:
+        dirs = Directory.objects.filter(Conv_User=conv)
+        for dir in dirs:
+            if str(dir.id) == str(id):
+                return dir
+        return Directory.objects.filter(Conv_User=conv).order_by("id")[0]
+    return None
