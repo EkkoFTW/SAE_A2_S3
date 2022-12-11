@@ -431,7 +431,7 @@ def createDirConv(request, user, conv):
         dirPath = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
     if 'File_Path' in request.session:
         dirPath += request.session['File_Path']
-    if 'directoryName' in request.POST and request.POST['directoryName'] is not "":
+    if 'directoryName' in request.POST and request.POST['directoryName'] != "":
         given_name = request.POST['directoryName']
         given_name.replace("/", "\\")
         given_name = get_valid_filename(given_name)
