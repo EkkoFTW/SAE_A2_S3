@@ -192,7 +192,7 @@ def handler(request):
             return JsonResponse(data={"type": "deleteConv", "convid": convid})
         elif "createConv" == type:
             user = getUser(request.user.id)
-            conv = createConv(user, request.POST['convname'])
+            conv = createConv(request, user, request.POST['convname'])
             return JsonResponse(data={"type": "createConv", "convid": conv.id, "convname": conv.Name})
         elif "addUserToConv" == type:
             convid = request.session['actualConv']
