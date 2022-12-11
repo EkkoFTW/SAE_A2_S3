@@ -24,7 +24,7 @@ function addFiles(fd, messageFiles){
 }
 
 function selectConv(convid){
-     fd = new FormData();
+     let fd = new FormData();
      fd.append("type", "selectConv");
      fd.append("convid", convid);
      $.ajax({
@@ -45,7 +45,7 @@ function selectConv(convid){
 }
 
 function fetchConvList(){
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", 'fetchConv');
     $.ajax({
         type: "POST",
@@ -70,7 +70,7 @@ function fetchConvList(){
 }
 
 function fetchMsg(first=false) {
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", 'fetchMsg');
     fd.append("nbFetch", "10");
     $.ajax({
@@ -143,13 +143,13 @@ function genMsg(userid, username, convid, msgid,text, files, date){
 convList = document.getElementById("convList");
 
 function genConv(convid, convname){
-    btnS = "btnConvSelect"+convid;
-    btnD = "btnConvDelete"+convid;
-    li = convList.appendChild(document.createElement('li'));
+    let btnS = "btnConvSelect"+convid;
+    let btnD = "btnConvDelete"+convid;
+    let li = convList.appendChild(document.createElement('li'));
     li.className = 'convLi';
     li.id = "idConv"+convid;
     li.appendChild(document.createElement('label')).innerHTML = convname;
-    buttonSelect = li.appendChild(document.createElement('button'));
+    let buttonSelect = li.appendChild(document.createElement('button'));
     buttonSelect.id = btnS;
     buttonSelect.className = 'btnConvSelect';
     buttonSelect.type = 'submit';
@@ -157,7 +157,7 @@ function genConv(convid, convname){
     buttonSelect.innerHTML = 'Select';
     buttonSelect.onclick = onClickConvButton("selectConv", convid);
 
-    buttonDelete = li.appendChild(document.createElement('button'));
+    let buttonDelete = li.appendChild(document.createElement('button'));
     buttonDelete.id = btnD;
     buttonDelete.className = 'btnConvDelete';
     buttonDelete.type = 'submit';
@@ -168,11 +168,12 @@ function genConv(convid, convname){
     li.appendChild(document.createElement('br'));
 }
 
-function onClickConvButton(type, convid){
+function onClickConvButton(type, convid, userid = "-1"){
     return function (){
-        fd = new FormData();
+        let fd = new FormData();
         fd.append("type", type);
         fd.append("convid", convid);
+        fd.append("userid", userid);
         $.ajax({
             type: "POST",
             url: addrIP + "handler",
@@ -193,7 +194,7 @@ function onClickConvButton(type, convid){
 
 document.getElementById("createConvButton").onclick = function (){
     let createConvInput = document.getElementById("createConvInput").innerHTML;
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "createConv")
     fd.append("convname", createConvInput);
     $.ajax({
@@ -217,7 +218,7 @@ document.getElementById("toSend").focus();
 document.getElementById("messageSubmit").onclick = function (e){
     let messageTxt = document.querySelector("#toSend").innerHTML;
     let messageFiles = document.querySelector("#id_file").files;
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "sendMessage")
     fd.append("text", messageTxt);
     addFiles(fd, messageFiles);
@@ -240,7 +241,7 @@ document.getElementById("messageSubmit").onclick = function (e){
 
 document.getElementById("addToConv").onclick = function (){
     let addToConvInput = document.getElementById("userToAdd").innerHTML;
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "addUserToConv");
     fd.append("email", addToConvInput);
     $.ajax({
@@ -272,6 +273,8 @@ function genUser(username, userid) {
     btnKick.type = "submit";
     btnKick.value = userid;
     btnKick.innerHTML = "Kick";
+    console.log(userid);
+    btnKick.onclick = onClickConvButton("deleteConv", -1, userid);
     let btnban = userList.appendChild(document.createElement('button'));
     btnban.type = "submit";
     btnban.value = userid;
@@ -283,15 +286,15 @@ function genUser(username, userid) {
 }
 
 function JsonToUser(msg){
-    username = msg.username;
-    userid = msg.userid;
-    email = msg.email;
-    PP = msg.PP;
+    let username = msg.username;
+    let userid = msg.userid;
+    let email = msg.email;
+    let PP = msg.PP;
     genUser(username, userid);
 }
 
 function askUser(convId){
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "askUser");
     fd.append("convid", convId);
     $.ajax({
@@ -314,7 +317,7 @@ function askUser(convId){
 }
 
 function askUserById(userid){
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "askUserById");
     fd.append("userid", userid);
     $.ajax({
@@ -335,7 +338,7 @@ function askUserById(userid){
 }
 
 function askConvById(convid){
-    fd = new FormData();
+    let fd = new FormData();
     fd.append("type", "askConvById");
     fd.append("convid", convid);
     $.ajax({

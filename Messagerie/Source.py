@@ -149,6 +149,8 @@ def createConv(user, convName):
 
 def kick(conv, user):
     perf = PerformanceProfiler("kick")
+    print(conv)
+    print(user)
     try:
         conv.Users.remove(user)
         user.Conv_User.remove(conv)

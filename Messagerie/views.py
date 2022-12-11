@@ -187,7 +187,13 @@ def handler(request):
                 request.session['actualConv'] = ""
             if old_convid == convid:
                 request.session['old_convid'] = ""
-            user = getUser(request.user.id)
+            print(request.POST['userid'])
+            if request.POST['userid'] == "-1":
+                user = getUser(request.user.id)
+            else:
+                user = getUser(request.POST['userid'])
+            if convid == "-1":
+                convid = request.session['actualConv']
             kick(getConv(convid), user)
             return JsonResponse(data={"type": "deleteConv", "convid": convid})
         elif "createConv" == type:
