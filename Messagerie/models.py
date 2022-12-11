@@ -44,6 +44,7 @@ class Conv_User(models.Model):
     Messages = models.ManyToManyField('Message')
     Users = models.ManyToManyField(Users)
 
+
     def __str__(self):
         return self.Name + " " + str(self.id)
 
