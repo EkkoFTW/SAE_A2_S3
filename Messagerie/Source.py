@@ -112,8 +112,15 @@ def get_all_QS_files(conv):
 def get_all_files(conv, directory):
     if conv is not None:
         subdirs = []
-        if directory is None:
+        print(conv)
+        print(type(conv))
+        print(conv.id)
+        print(directory)
+        print(type(directory))
+        if directory is None or directory == "":
+            print('dir none or "" ')
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
+            print('here')
         else:
             directory = getDir(directory, conv)
         dirs = Directory.objects.filter(parent=directory)
@@ -128,20 +135,6 @@ def get_all_files(conv, directory):
         return all_files, subdirs
     else:
         return None, None
-
-
-def login(Username, Passwd):
-    #perf = PerformanceProfiler("login")
-    #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
-    print("Login : " +Username + Passwd)
-    user = authenticate(username=Username, password=Passwd)
-    print(user)
-    if user is not None:
-        print('connection: succeed ---> ', end="")
-        return user
-    else:
-        print("connection: failed")
-        return -1
 
 def auto_login(Sessionid, Userid):
     #perf = PerformanceProfiler("auto_login")
@@ -235,13 +228,15 @@ def sendMsg(user, request):
         if conv is not None and fileform.is_valid():
             Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
-            dir_path = conv.dir.path + user.id + "\\"
+            dir_path = settings.MEDIA_ROOT + "\\" + str(conv.id) + "\\" + str(user.id) + "\\"
             dir = Directory.objects.filter(path=dir_path)
             if dir.exists():
                 dir = dir[0]
             else:
-                os.mkdir(dir_path)
-                dir = Directory(path=dir_path)
+                try:
+                    dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=settings.MEDIA_ROOT + "\\" + str(conv.id) + "\\")[0])
+                except:
+                    print("Dir conv does not exist")
             i = 0
             files = []
             for f in Files:

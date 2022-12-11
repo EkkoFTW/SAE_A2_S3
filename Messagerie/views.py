@@ -224,14 +224,25 @@ def handler(request):
 def file(request):
     context = {}
     template = loader.get_template('Messagerie/file.html')
-    try:
-        user = auto_login(request.session.session_key, request.session.get('userid'))
-        if user == -1:
-            print("no sessionid")
+    perf = PerformanceProfiler("log")
+    context = {}
+    if "connect" in request.POST:
+        username = request.POST['usernameconnect']
+        password = request.POST['passwordconnect']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+        else:
             return redirect('log')
-    except:
-        return redirect('log')
-
+    elif "create" in request.POST:
+        username = request.POST['username']
+        email = request.POST['email']
+        user = Users.objects.create_user(username, email, request.POST['password'])
+        if user is not None:
+            login(request, user)
+        else:
+            return redirect('log')
+    user = request.user
     conv_list = user.Conv_User.all()
     firstConv = None
     latest_message_list = None
