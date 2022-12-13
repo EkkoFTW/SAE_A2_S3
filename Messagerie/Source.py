@@ -149,8 +149,6 @@ def createConv(user, convName):
 
 def kick(conv, user):
     perf = PerformanceProfiler("kick")
-    print(conv)
-    print(user)
     try:
         conv.Users.remove(user)
         user.Conv_User.remove(conv)
@@ -329,18 +327,18 @@ def getConv(conv_id):
     except:
         return -1
 
-def fetchAskedMsg(conv, begin=0,nb=20):
-    allMsg = conv.Messages.all()
-    nbMsg = allMsg.count()-1
-    nbMsg = nbMsg - begin
-
-    if nbMsg < 0:
-        return []
-    if nb > nbMsg:
-        nb = nbMsg
-    latest = allMsg[nbMsg]
-    first = allMsg[nbMsg-nb]
-    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=first.id)
+def fetchAskedMsg(conv, begin=0,nb=10):
+    perf = PerformanceProfiler("fetchAskedMsg")
+    allMsg = conv.Messages.all().order_by('-id')
+    nbMsgToShow = nb+begin
+    nbMsg = allMsg.count()
+    if nbMsg < nbMsgToShow:
+        nbMsgToShow = nbMsg
+    msgList = []
+    try:
+        msgList = allMsg.filter(id__gte=allMsg[nbMsgToShow-1].id, id__lte=allMsg[begin].id)
+    except:
+        pass
     return msgList
 
 def getLatestConv(user):

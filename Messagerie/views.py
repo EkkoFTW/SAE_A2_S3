@@ -116,6 +116,7 @@ def handler(request):
             return JsonResponse(data=Dict)
         elif "fetchMsg" == type:
             user = getUser(request.user.id)
+            first = int(request.POST['first'])
             try:
                 conv = getConv(request.session['actualConv'])
             except:
@@ -123,7 +124,8 @@ def handler(request):
                 request.session['actualConv'] = conv.id
             if conv == -1:
                 return JsonResponse(data={'type': "non"})
-            msgList = fetchAskedMsg(conv)
+
+            msgList = fetchAskedMsg(conv, first)
             Dict = {}
             records = []
             for msg in msgList:
@@ -187,7 +189,6 @@ def handler(request):
                 request.session['actualConv'] = ""
             if old_convid == convid:
                 request.session['old_convid'] = ""
-            print(request.POST['userid'])
             if request.POST['userid'] == "-1":
                 user = getUser(request.user.id)
             else:
@@ -195,7 +196,7 @@ def handler(request):
             if convid == "-1":
                 convid = request.session['actualConv']
             kick(getConv(convid), user)
-            return JsonResponse(data={"type": "deleteConv", "convid": convid})
+            return JsonResponse(data={"type": "deleteConv", "userid": user.id, "convid": convid})
         elif "createConv" == type:
             user = getUser(request.user.id)
             conv = createConv(user, request.POST['convname'])
@@ -213,7 +214,11 @@ def handler(request):
         elif "askUser" == type:
             convid = request.POST['convid']
             conv = getConv(convid)
-            userList = conv.Users.all()
+            userList = []
+            try:
+                userList = conv.Users.all()
+            except:
+                pass
             Dict = {}
             records = []
             for user in userList:
@@ -222,7 +227,7 @@ def handler(request):
             return JsonResponse(data=Dict)
         elif "askUserById" == type:
             user = getUser(request.POST['userid'])
-            return JsonResponse(data={"username": user.username_value, "email": user.email, "PP": user.PP})
+            return JsonResponse(data={"userid": user.id, "username": user.username_value, "email": user.email, "PP": user.PP})
         elif "askConvById" == type:
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
