@@ -413,8 +413,10 @@ ws.onmessage = function (msg){
         JsonToConv(msg);
     }else if (msg.type === "add_usertoconv"){
         askUserById(msg.userid);
-    }else if (msg.type === "got_addedtoconv"){
+    }else if (msg.type === "got_addedtoconv") {
         askConvById(msg.convid);
+    }else if (msg.type === "toFiles"){
+        //loadFile(fetch les files, fetch les directories);
     }
 }
 
