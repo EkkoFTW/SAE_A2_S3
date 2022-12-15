@@ -170,8 +170,8 @@ def createConv(request, user, convName):
     #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\")
     return newConv
 
-def kick(conv, user_id):
-    #perf = PerformanceProfiler("kick")
+def kick(conv, user):
+    perf = PerformanceProfiler("kick")
     try:
         conv.Users.remove(user)
         user.Conv_User.remove(conv)
@@ -182,7 +182,7 @@ def kick(conv, user_id):
         return
 
 def convCleaner():
-    #perf = PerformanceProfiler("convCleaner")
+    perf = PerformanceProfiler("convCleaner")
     for conv in Conv_User.objects.all():
         if not conv.Users.all().exists():
             deleteConv(conv)
