@@ -116,6 +116,7 @@ def handler(request):
             return JsonResponse(data=Dict)
         elif "fetchMsg" == type:
             user = getUser(request.user.id)
+            first = int(request.POST['first'])
             try:
                 conv = getConv(request.session['actualConv'])
             except:
@@ -123,7 +124,8 @@ def handler(request):
                 request.session['actualConv'] = conv.id
             if conv == -1:
                 return JsonResponse(data={'type': "non"})
-            msgList = fetchAskedMsg(conv)
+
+            msgList = fetchAskedMsg(conv, first)
             Dict = {}
             records = []
             for msg in msgList:
@@ -187,7 +189,6 @@ def handler(request):
                 request.session['actualConv'] = ""
             if old_convid == convid:
                 request.session['old_convid'] = ""
-            print(request.POST['userid'])
             if request.POST['userid'] == "-1":
                 user = getUser(request.user.id)
             else:
@@ -195,7 +196,7 @@ def handler(request):
             if convid == "-1":
                 convid = request.session['actualConv']
             kick(getConv(convid), user)
-            return JsonResponse(data={"type": "deleteConv", "convid": convid})
+            return JsonResponse(data={"type": "deleteConv", "userid": user.id, "convid": convid})
         elif "createConv" == type:
             user = getUser(request.user.id)
             conv = createConv(request, user, request.POST['convname'])
@@ -213,7 +214,11 @@ def handler(request):
         elif "askUser" == type:
             convid = request.POST['convid']
             conv = getConv(convid)
-            userList = conv.Users.all()
+            userList = []
+            try:
+                userList = conv.Users.all()
+            except:
+                pass
             Dict = {}
             records = []
             for user in userList:
@@ -222,18 +227,34 @@ def handler(request):
             return JsonResponse(data=Dict)
         elif "askUserById" == type:
             user = getUser(request.POST['userid'])
-            return JsonResponse(data={"username": user.username_value, "email": user.email, "PP": user.PP})
+            return JsonResponse(data={"userid": user.id, "username": user.username_value, "email": user.email, "PP": user.PP})
         elif "askConvById" == type:
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
-    user = request.user
-    if not user.is_authenticated:
-        return redirect('log')
     context = {}
     template = loader.get_template('Messagerie/file.html')
+    perf = PerformanceProfiler("log")
+    context = {}
+    if "connect" in request.POST:
+        username = request.POST['usernameconnect']
+        password = request.POST['passwordconnect']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+        else:
+            return redirect('log')
+    elif "create" in request.POST:
+        username = request.POST['username']
+        email = request.POST['email']
+        user = Users.objects.create_user(username, email, request.POST['password'])
+        if user is not None:
+            login(request, user)
+        else:
+            return redirect('log')
+    user = request.user
     conv_list = user.Conv_User.all()
     firstConv = None
     latest_message_list = None

@@ -6,7 +6,6 @@ let ws = new WebSocket("ws://127.0.0.1:8000/ws/");
 let actualConv = null;
 
 ws.onopen = function (e){
-    fetchMsg(true);
     fetchConvList();
     selectConv("Begin");
 }
@@ -69,10 +68,11 @@ function fetchConvList(){
     })
 }
 
-function fetchMsg(first=false) {
+function fetchMsg(first= 0) {
     let fd = new FormData();
     fd.append("type", 'fetchMsg');
     fd.append("nbFetch", "10");
+    fd.append("first", first);
     $.ajax({
         type: "POST",
         url: addrIP+"handler",
@@ -86,10 +86,13 @@ function fetchMsg(first=false) {
         },
         success: function (response){
             try {
+                let oldLatest = document.getElementById("msgUl").children[0]
                 for(let i = 0; i < response['msgList'].length; i++){
                     JsonToMsg(response['msgList'][i])
                 }
-                if (true){
+                if (first !== 0) {
+                    oldLatest.scrollIntoView();
+                }else{
                     chatbox.scrollTop = chatbox.scrollHeight;
                 }
             }
@@ -98,7 +101,7 @@ function fetchMsg(first=false) {
     })
 }
 
-function JsonToMsg(msg){
+function JsonToMsg(msg, toAppend= false){
     let userid = msg.userid;
     let username = msg.username
     let convid = msg.convid;
@@ -106,7 +109,7 @@ function JsonToMsg(msg){
     let text = msg.text;
     let files = msg.files;
     let date = msg.date;
-    genMsg(userid, username, convid, msgid,text, files, date);
+    genMsg(userid, username, convid, msgid,text, files, date, toAppend);
 }
 
 function JsonToConv(conv){
@@ -116,26 +119,49 @@ function JsonToConv(conv){
 }
 
 
-function genMsg(userid, username, convid, msgid,text, files, date){
-    let listFile = "";
-    for (let i = 0; i < files.length; i++){
-        listFile += "<img class='aImg' src="+files[i]+" alt="+files[i]+">";
-    }
+function genMsg(userid, username, convid, msgid,text, files, date, toAppend){
     let bottom = false
     if (chatbox.scrollHeight-chatbox.scrollTop < 700){
         bottom = true
     }
-    document.querySelector("#msgUl").innerHTML +=
-        "<li id='msgId'><p>"+date+"</p>"+
-            "<a href="+username+">username</a>"+
-            "<p> "+text+" </p>"+
-            listFile +
-            "<button type='submit' name='deleteMessage' value="+msgid+"> Delete</button>"+
-            "<button type='submit' name='editMessage' value="+msgid+"> Edit</button>"+
-            "<button type='submit' name='replyMessage' value="+msgid+"> Reply</button>"+
-        "</li>"+
-        "<br>";
-    if (bottom === true){
+    let msgUl = document.getElementById("msgUl")
+    let li;
+    if (!toAppend) {
+        li = msgUl.insertBefore(document.createElement("li"), msgUl.children[0]);
+    }else {
+        li = msgUl.appendChild(document.createElement("li"));
+    }
+    li.id = "msgId"+msgid
+    li.appendChild(document.createElement("p")).innerHTML = date;
+    let user = li.appendChild(document.createElement("a"));
+    user.innerHTML = username;
+    li.appendChild(document.createElement("p")).innerHTML = text;
+    let file;
+    for (let i = 0; i < files.length; i++) {
+        file = li.appendChild(document.createElement("img"));
+        file.className = "aImg";
+        file.src = files[i];
+        file.alt = files[i];
+    }
+    let btnDelete = li.appendChild(document.createElement("button"));
+    btnDelete.type = "submit";
+    btnDelete.className = "btnMsgDelete";
+    btnDelete.id = "btnMsgDelete" + msgid;
+    btnDelete.value = msgid;
+    btnDelete.innerHTML = "Delete";
+    let btnEdit = li.appendChild(document.createElement("button"));
+    btnEdit.type = "submit";
+    btnEdit.className = "btnMsgEdit";
+    btnEdit.id = "btnMsgEdit" + msgid;
+    btnEdit.value = msgid;
+    btnEdit.innerHTML = "Edit";
+    let btnReply = li.appendChild(document.createElement("button"));
+    btnReply.type = "submit";
+    btnReply.className = "btnMsgReply";
+    btnReply.id = "btnMsgReply" + msgid;
+    btnReply.value = msgid;
+    btnReply.innerHTML = "Reply";
+    if (toAppend){
         chatbox.scrollTop = chatbox.scrollHeight;
     }
 }
@@ -267,19 +293,19 @@ function genUser(username, userid) {
     let userList = document.getElementById("userList");
     let li = userList.appendChild(document.createElement('li'));
     li.className = "liUser";
-    let label = userList.appendChild(document.createElement('label'));
+    li.id = "userid"+userid;
+    let label = li.appendChild(document.createElement('label'));
     label.innerHTML = username;
-    let btnKick = userList.appendChild(document.createElement('button'));
+    let btnKick = li.appendChild(document.createElement('button'));
     btnKick.type = "submit";
     btnKick.value = userid;
     btnKick.innerHTML = "Kick";
-    console.log(userid);
     btnKick.onclick = onClickConvButton("deleteConv", -1, userid);
-    let btnban = userList.appendChild(document.createElement('button'));
+    let btnban = li.appendChild(document.createElement('button'));
     btnban.type = "submit";
     btnban.value = userid;
     btnban.innerHTML = "Ban";
-    let btnWhisp = userList.appendChild(document.createElement('button'));
+    let btnWhisp = li.appendChild(document.createElement('button'));
     btnWhisp.type = "submit";
     btnWhisp.value = userid;
     btnWhisp.innerHTML = "Whisper";
@@ -358,18 +384,27 @@ function askConvById(convid){
     })
 }
 
+chatbox.onscroll = function (){
+    if (chatbox.scrollTop === 0){
+        fetchMsg(document.getElementById("msgUl").children.length);
+    }
+}
+
 ws.onmessage = function (msg){
     msg = JSON.parse(msg.data);
     if (msg.type === "sendMessage"){
-        JsonToMsg(msg);
+        JsonToMsg(msg, true);
     }else if (msg.type === "selectConv"){
         document.getElementById("msgUl").innerHTML = "";
         document.getElementById("convName").innerHTML = msg.convname;
         document.getElementById("userList").innerHTML = "";
         askUser(msg.convid);
-        fetchMsg(true);
+        fetchMsg(0);
     }
-    else if (msg.type === "deleteConv"){
+    else if (msg.type === "userToKick"){
+        document.getElementById("userList").removeChild(document.getElementById("userid"+msg.userid));
+    }else if (msg.type === "kickFromConv"){
+        ws.send(JSON.stringify({"type": "hasBeenKicked", "convid": msg.convid}))
         document.getElementById("convList").removeChild(document.getElementById("idConv"+msg.convid));
         selectConv("Begin");
     }

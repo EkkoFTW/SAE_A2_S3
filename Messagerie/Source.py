@@ -112,36 +112,21 @@ def get_all_QS_files(conv):
 def get_all_files(conv, directory):
     if conv is not None:
         subdirs = []
-        if directory is None:
+        if directory is None or directory == "":
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
         else:
             directory = getDir(directory, conv)
+        print(directory)
         dirs = Directory.objects.filter(parent=directory)
         for dir in dirs:
             subdirs.append(dir)
-        all_qs_files = []
-        if directory.child_files is not None:
-            all_qs_files = directory.child_files.all()
+        all_qs_files = File.objects.filter(directory=directory)
         all_files = []
         for file in all_qs_files:
             all_files.append(file)
         return all_files, subdirs
     else:
         return None, None
-
-
-def login(Username, Passwd):
-    #perf = PerformanceProfiler("login")
-    #print('DEBUG: function "login(' + str(Username) + ', ' + str(Passwd) + ') ---> ', end="")
-    print("Login : " +Username + Passwd)
-    user = authenticate(username=Username, password=Passwd)
-    print(user)
-    if user is not None:
-        print('connection: succeed ---> ', end="")
-        return user
-    else:
-        print("connection: failed")
-        return -1
 
 def auto_login(Sessionid, Userid):
     #perf = PerformanceProfiler("auto_login")
@@ -185,8 +170,8 @@ def createConv(request, user, convName):
     #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\")
     return newConv
 
-def kick(conv, user_id):
-    #perf = PerformanceProfiler("kick")
+def kick(conv, user):
+    perf = PerformanceProfiler("kick")
     try:
         conv.Users.remove(user)
         user.Conv_User.remove(conv)
@@ -197,7 +182,7 @@ def kick(conv, user_id):
         return
 
 def convCleaner():
-    #perf = PerformanceProfiler("convCleaner")
+    perf = PerformanceProfiler("convCleaner")
     for conv in Conv_User.objects.all():
         if not conv.Users.all().exists():
             deleteConv(conv)
@@ -215,10 +200,13 @@ def addUserToConv(Conv, user):
 def addUserObjToConv(Conv, user):
     #perf = PerformanceProfiler("addUserObjToConv")
     try:
+        Conv.Users.get(id=user.id)
+        return False
+    except:
         Conv.Users.add(user)
         user.Conv_User.add(Conv)
-    except:
-        return
+        return True
+
 
 def sendMsg(user, request):
     #perf = PerformanceProfiler("sendMsg")
@@ -235,13 +223,16 @@ def sendMsg(user, request):
         if conv is not None and fileform.is_valid():
             Files = request.FILES.getlist('files')
             conv = Conv_User.objects.get(id=conv)
-            dir_path = conv.dir.path + user.id + "\\"
+            dir_path = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\" + str(user.id) + "\\"
             dir = Directory.objects.filter(path=dir_path)
             if dir.exists():
                 dir = dir[0]
             else:
-                os.mkdir(dir_path)
-                dir = Directory(path=dir_path)
+                try:
+                    dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0])
+                except:
+                    print("Dir conv does not exist")
+            print(dir)
             i = 0
             files = []
             for f in Files:
@@ -378,18 +369,18 @@ def getConv(conv_id):
     except:
         return -1
 
-def fetchAskedMsg(conv, begin=0,nb=20):
-    allMsg = conv.Messages.all()
-    nbMsg = allMsg.count()-1
-    nbMsg = nbMsg - begin
-
-    if nbMsg < 0:
-        return []
-    if nb > nbMsg:
-        nb = nbMsg
-    latest = allMsg[nbMsg]
-    first = allMsg[nbMsg-nb]
-    msgList = allMsg.filter(pk__lte=latest.id, pk__gte=first.id)
+def fetchAskedMsg(conv, begin=0,nb=10):
+    perf = PerformanceProfiler("fetchAskedMsg")
+    allMsg = conv.Messages.all().order_by('-id')
+    nbMsgToShow = nb+begin
+    nbMsg = allMsg.count()
+    if nbMsg < nbMsgToShow:
+        nbMsgToShow = nbMsg
+    msgList = []
+    try:
+        msgList = allMsg.filter(id__gte=allMsg[nbMsgToShow-1].id, id__lte=allMsg[begin].id)
+    except:
+        pass
     return msgList
 
 def getLatestConv(user):

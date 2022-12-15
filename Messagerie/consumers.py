@@ -1,7 +1,7 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 import json
-
+import time
 
 class PracticeConsumer(AsyncJsonWebsocketConsumer):
     async def websocket_connect(self, event):
@@ -25,13 +25,15 @@ class PracticeConsumer(AsyncJsonWebsocketConsumer):
                 pass
             await self.send(event['text'])
         elif "deleteConv" == loader['type']:
-            await self.channel_layer.group_discard("convId"+str(loader['convid']), self.channel_name)
-            await self.send(event['text'])
+            await self.channel_layer.group_send("userId"+str(loader['userid']), {"type": "kickFromConv", "text": event['text']})
+            await self.channel_layer.group_send("convId"+str(loader['convid']), {"type": "userToKick", "text": event['text']})
         elif "createConv" == loader['type']:
             await self.send(event['text'])
         elif "addUserToConv" == loader['type']:
             await self.channel_layer.group_send("convId"+str(loader['convid']), {"type": "add_usertoconv", "text": str(event['text'])})
             await self.channel_layer.group_send("userId"+str(loader['userid']), {"type": "got_addedtoconv", "text": str(event['text'])})
+        elif "hasBeenKicked" == loader['type']:
+            await self.channel_layer.group_discard("convId"+str(loader['convid']), self.channel_name)
 
     async def websocket_disconnect(self, event):
         # when websocket disconnects
@@ -43,13 +45,19 @@ class PracticeConsumer(AsyncJsonWebsocketConsumer):
     async def add_usertoconv(self, event):
         loaded = json.loads(event['text'])
         loaded['type'] = "add_usertoconv"
-        loaded['convid'] = loaded['convid']
-        loaded['userid'] = loaded['userid']
         await self.send(json.dumps(loaded))
 
     async def got_addedtoconv(self, event):
         loaded = json.loads(event['text'])
         loaded['type'] = "got_addedtoconv"
-        loaded['convid'] = loaded['convid']
-        loaded['userid'] = loaded['userid']
+        await self.send(json.dumps(loaded))
+
+    async def kickFromConv(self, event):
+        loaded = json.loads(event['text'])
+        loaded['type'] = "kickFromConv"
+        await self.send(json.dumps(loaded))
+
+    async def userToKick(self, event):
+        loaded = json.loads(event['text'])
+        loaded['type'] = "userToKick"
         await self.send(json.dumps(loaded))
