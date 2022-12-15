@@ -34,6 +34,8 @@ class PracticeConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_send("userId"+str(loader['userid']), {"type": "got_addedtoconv", "text": str(event['text'])})
         elif "hasBeenKicked" == loader['type']:
             await self.channel_layer.group_discard("convId"+str(loader['convid']), self.channel_name)
+        elif "deleteMsg" == loader['type']:
+            await self.channel_layer.group_send("convId"+str(loader['convid']), {"type": "msgToDelete", "text": str(event['text'])})
 
     async def websocket_disconnect(self, event):
         # when websocket disconnects
@@ -60,4 +62,9 @@ class PracticeConsumer(AsyncJsonWebsocketConsumer):
     async def userToKick(self, event):
         loaded = json.loads(event['text'])
         loaded['type'] = "userToKick"
+        await self.send(json.dumps(loaded))
+
+    async def msgToDelete(self, event):
+        loaded = json.loads(event['text'])
+        loaded['type'] = "msgToDelete"
         await self.send(json.dumps(loaded))

@@ -1,4 +1,3 @@
-const user_id = JSON.parse(document.getElementById('user_id').textContent);
 const csrf_token = document.querySelector("#csrf_token").innerHTML;
 const addrIP = "http://127.0.0.1:8000/Messagerie/";
 let ws = new WebSocket("ws://127.0.0.1:8000/ws/");
@@ -118,7 +117,6 @@ function JsonToConv(conv){
     genConv(convid, convname);
 }
 
-
 function genMsg(userid, username, convid, msgid,text, files, date, toAppend){
     let bottom = false
     if (chatbox.scrollHeight-chatbox.scrollTop < 700){
@@ -149,6 +147,7 @@ function genMsg(userid, username, convid, msgid,text, files, date, toAppend){
     btnDelete.id = "btnMsgDelete" + msgid;
     btnDelete.value = msgid;
     btnDelete.innerHTML = "Delete";
+    btnDelete.onclick = onClickMsgButton("deleteMsg", msgid);
     let btnEdit = li.appendChild(document.createElement("button"));
     btnEdit.type = "submit";
     btnEdit.className = "btnMsgEdit";
@@ -174,7 +173,7 @@ function genConv(convid, convname){
     let li = convList.appendChild(document.createElement('li'));
     li.className = 'convLi';
     li.id = "idConv"+convid;
-    li.appendChild(document.createElement('label')).innerHTML = convname;
+    li.appendChild(document.createElement('label')).innerHTML = convname + " ";
     let buttonSelect = li.appendChild(document.createElement('button'));
     buttonSelect.id = btnS;
     buttonSelect.className = 'btnConvSelect';
@@ -200,6 +199,29 @@ function onClickConvButton(type, convid, userid = "-1"){
         fd.append("type", type);
         fd.append("convid", convid);
         fd.append("userid", userid);
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                ws.send(JSON.stringify(response));
+            }
+        })
+    }
+}
+
+function onClickMsgButton(type, msgid){
+    return function () {
+        let fd = new FormData();
+        fd.append("type", type);
+        fd.append("msgid", msgid);
         $.ajax({
             type: "POST",
             url: addrIP + "handler",
@@ -390,6 +412,10 @@ chatbox.onscroll = function (){
     }
 }
 
+function askMsgById(msgid){
+
+}
+
 ws.onmessage = function (msg){
     msg = JSON.parse(msg.data);
     if (msg.type === "sendMessage"){
@@ -415,5 +441,8 @@ ws.onmessage = function (msg){
         askUserById(msg.userid);
     }else if (msg.type === "got_addedtoconv"){
         askConvById(msg.convid);
+    }else if (msg.type === "msgToDelete"){
+        console.log(msg.msgid)
+        askMsgById(msg.msgid);
     }
 }

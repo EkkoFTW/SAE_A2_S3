@@ -24,6 +24,9 @@ def index(request):
         return redirect('log')
     fileform = FileForm()
     context = {"fileform": fileform}
+
+    if "toFiles" in request.POST:
+        return redirect('file')
     """
     conv_list = user.Conv_User.all()
     firstConv = None
@@ -107,7 +110,7 @@ def handler(request):
     if request.method == 'POST':
         type = request.POST['type']
         if "sendMessage" == type:
-            user = getUser(request.user.id)
+            user = request.user
             msg = sendMsg(user, request)
             fileList = []
             for fl in msg.files.all():
@@ -115,7 +118,7 @@ def handler(request):
             Dict = {"type": "sendMessage", "userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id}
             return JsonResponse(data=Dict)
         elif "fetchMsg" == type:
-            user = getUser(request.user.id)
+            user = request.user
             first = int(request.POST['first'])
             try:
                 conv = getConv(request.session['actualConv'])
@@ -136,7 +139,7 @@ def handler(request):
             Dict["msgList"] = records
             return JsonResponse(data=Dict)
         elif "fetchConv" == type:
-            user = getUser(request.user.id)
+            user = request.user
             convList = user.Conv_User.all()
             Dict = {}
             records = []
@@ -146,7 +149,7 @@ def handler(request):
             return JsonResponse(data=Dict)
         elif "selectConv" == type:
             convid = request.POST['convid']
-            user = getUser(request.user.id)
+            user = request.user
             try:
                 actualConv = request.session['actualConv']
             except:
@@ -190,7 +193,7 @@ def handler(request):
             if old_convid == convid:
                 request.session['old_convid'] = ""
             if request.POST['userid'] == "-1":
-                user = getUser(request.user.id)
+                user = request.user
             else:
                 user = getUser(request.POST['userid'])
             if convid == "-1":
@@ -198,7 +201,7 @@ def handler(request):
             kick(getConv(convid), user)
             return JsonResponse(data={"type": "deleteConv", "userid": user.id, "convid": convid})
         elif "createConv" == type:
-            user = getUser(request.user.id)
+            user = request.user
             conv = createConv(request, user, request.POST['convname'])
             return JsonResponse(data={"type": "createConv", "convid": conv.id, "convname": conv.Name})
         elif "addUserToConv" == type:
@@ -231,12 +234,18 @@ def handler(request):
         elif "askConvById" == type:
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
+        elif "deleteMsg" == type:
+            msgid = request.POST['msgid']
+            conv = getConv(request.session['actualConv'])
+            msg = getMsgFromConv(msgid, conv)
+            deleteMsg(msg)
+            return JsonResponse(data={"type": "deleteMsg", "msgid": msg.id, "convid": conv.id})
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
+    perf = PerformanceProfiler("file")
     context = {}
     template = loader.get_template('Messagerie/file.html')
-    perf = PerformanceProfiler("log")
     context = {}
     if "connect" in request.POST:
         username = request.POST['usernameconnect']
@@ -254,6 +263,8 @@ def file(request):
             login(request, user)
         else:
             return redirect('log')
+    elif "downloadFile" in request.POST:
+        return download_file(request, "")
     user = request.user
     conv_list = user.Conv_User.all()
     firstConv = None
@@ -300,11 +311,8 @@ def file(request):
             if (len(str(i.Name)) > 12):
                 i.Name = i.Name[:10] + "..."
     current_dir = None
-    print(request.session)
     if 'current_dir' in request.session:
-        print(request.session['current_dir'])
         current_dir = request.session['current_dir']
-        print(current_dir)
     all_files = []
     list_subdirs = []
     try:
@@ -323,7 +331,7 @@ def file(request):
 
 def download_file(request, filepath):
     if "downloadFile" in request.POST:
-        file = request.POST['downloadFile']
+        file = File.objects.get(id=request.POST['downloadFile'])
         filename = file.Title
         fl_path = file.file.path
         fl = open(fl_path, 'rb')

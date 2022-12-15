@@ -7,7 +7,7 @@ from .forms import *
 from enum import Enum
 from .PerformanceProfiler import *
 from django.shortcuts import redirect
-
+import asyncio
 from django.utils.text import get_valid_filename
 from django.template import loader
 from django.conf import settings
@@ -20,13 +20,6 @@ class formsToInt(Enum):
     selectConv = 3
     deleteConv = 4
     sendMessage = 5
-
-
-def handle_uploaded_file(f, name):
-    #perf = PerformanceProfiler("handle_uploaded_file")
-    with open("media\\files\\"+name, 'wb+') as destination:
-        for chunk in f.chunks():
-            destination.write(chunk)
 
 def handle_form_response(request, user, conv, firstConv):
     all_param = []
@@ -77,9 +70,7 @@ def handle_form_response(request, user, conv, firstConv):
         elif "logout" in request.POST:
             logout(request)
             return redirect('log')
-
         elif "toFiles" in request.POST:
-            # toFiles(request, user, conv)
             return redirect('file')
         elif 'deleteFile' in request.POST:
             return deleteFile(request.POST['deleteFile'])
@@ -90,14 +81,12 @@ def handle_form_response(request, user, conv, firstConv):
         elif 'enterDir' in request.POST:
             return enterDir(request, request.POST['enterDir'], conv)
         elif 'current_dir' in request.POST:
-            print(str(request.POST['current_dir']))
             return previousDir(request, request.POST['current_dir'], conv)
 
 def previousDir(request, previous_dir, conv):
     request.session['current_dir'] = previous_dir
 
 def disconnect(user):
-    print(user.sessionid)
     user.sessionid = "Empty"
     user.save()
 
@@ -116,7 +105,6 @@ def get_all_files(conv, directory):
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
         else:
             directory = getDir(directory, conv)
-        print(directory)
         dirs = Directory.objects.filter(parent=directory)
         for dir in dirs:
             subdirs.append(dir)
@@ -128,27 +116,8 @@ def get_all_files(conv, directory):
     else:
         return None, None
 
-def auto_login(Sessionid, Userid):
-    #perf = PerformanceProfiler("auto_login")
-    #print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
-    if Sessionid is None or Userid is None:
-        #print("Nop")
-        return -1
-    user = Users.objects.get(email=Userid)
-    if user is None:
-        #print("userid dosn't exist")
-        #print("")
-        return -1
-    sessionid = user.sessionid
-    if sessionid == Sessionid:
-        #print("Connected to " + str(user))
-        return user
-    else:
-        #print("Wrong SessionID for " + str(user))
-        return -1
-
 def createConv(request, user, convName):
-    #perf = PerformanceProfiler("createConv")
+    perf = PerformanceProfiler("createConv")
     if convName == "":
         newConv = Conv_User(Name=user.get_username_value() + "'s Conv")
     elif convName.__len__() < 30:
@@ -166,8 +135,6 @@ def createConv(request, user, convName):
     request.session['actualConv'] = newConv.id
 
     createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\", user.id, newConv, newDir)
-    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\")
-    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\")
     return newConv
 
 def kick(conv, user):
@@ -188,7 +155,7 @@ def convCleaner():
             deleteConv(conv)
 
 def addUserToConv(Conv, user):
-    #perf = PerformanceProfiler("addUserToConv")
+    perf = PerformanceProfiler("addUserToConv")
     try:
         user_to_add = Users.objects.get(email=user)
         Conv.Users.add(user_to_add)
@@ -198,7 +165,7 @@ def addUserToConv(Conv, user):
         return
 
 def addUserObjToConv(Conv, user):
-    #perf = PerformanceProfiler("addUserObjToConv")
+    perf = PerformanceProfiler("addUserObjToConv")
     try:
         Conv.Users.get(id=user.id)
         return False
@@ -209,12 +176,9 @@ def addUserObjToConv(Conv, user):
 
 
 def sendMsg(user, request):
-    #perf = PerformanceProfiler("sendMsg")
-    #print("Actual session to send message : ", end="")
-    #print(request.session["actualConv"])
+    perf = PerformanceProfiler("sendMsg")
     text = request.POST.get('text')
     toAdd = None
-    print("Message sent")
     files = []
     Files = []
     try:
@@ -232,7 +196,6 @@ def sendMsg(user, request):
                     dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0])
                 except:
                     print("Dir conv does not exist")
-            print(dir)
             i = 0
             files = []
             for f in Files:
@@ -240,6 +203,7 @@ def sendMsg(user, request):
                 toAdd.file = f
                 name = toAdd.file.name.split("/")
                 name = name[len(name)-1]
+                toAdd.Title = name
                 toAdd.file.name = str(conv.id) + "/" + str(user.pk) + "/" + name
                 toAdd.directory = dir
                 files.append(toAdd)
@@ -279,9 +243,8 @@ def showMessageList(conv):
 
 
 def whisper(Receiver, Sender, request, baseConv):
-    #perf = PerformanceProfiler("whisper")
+    perf = PerformanceProfiler("whisper")
     list = Sender.Conv_User.all()
-    print(list)
     Receiver = Users.objects.get(pk=Receiver)
     found = False
     for conv in list:
@@ -295,7 +258,7 @@ def whisper(Receiver, Sender, request, baseConv):
 
 
 def deleteConvID(IDconv):
-    #perf = PerformanceProfiler("deleteConvID")
+    perf = PerformanceProfiler("deleteConvID")
     try:
         conv = Conv_User.objects.get(pk=IDconv)
         if conv is None:
@@ -311,7 +274,7 @@ def deleteConvID(IDconv):
 
 
 def deleteConv(conv):
-    #perf = PerformanceProfiler("deleteConv")
+    perf = PerformanceProfiler("deleteConv")
     try:
         if conv is None:
             return -1
@@ -324,7 +287,7 @@ def deleteConv(conv):
         print("Conv does not exist")
 
 def msgCleaner():
-    #perf = PerformanceProfiler("msgCleaner")
+    perf = PerformanceProfiler("msgCleaner")
     msgList = Message.objects.all()
     convList = Conv_User.objects.all()
     tabMsg = [False]*(((Message.objects.order_by('-id')[:1])[0].id)+1)
@@ -337,22 +300,20 @@ def msgCleaner():
             deleteMsg(msg)
 
 def deleteMsgID(msgID):
-    #perf = PerformanceProfiler("deleteMsgID")
+    perf = PerformanceProfiler("deleteMsgID")
     try:
         obj = Message.objects.get(pk=msgID)
         obj.files.all().delete()
         obj.delete()
     except:
-        #print(perf.space() + )
         print("msg does not exist")
 
 def deleteMsg(msg):
-    #perf = PerformanceProfiler("deleteMsg")
+    perf = PerformanceProfiler("deleteMsg")
     try:
         msg.files.all().delete()
         msg.delete()
     except:
-        #print(perf.space() + "msg does not exist")
         print("msg does not exist")
 
 def getUser(user_id):
@@ -397,9 +358,6 @@ def deleteFile(id):
             return -1
         else:
             file.Message.files.remove(file)
-            print("Message contains :")
-            print(not file.Message.files.all().exists())
-            print(file.Message.Text)
             if(not file.Message.files.all().exists() and file.Message.Text == ""):
                 file.Message.delete()
             file.delete()
@@ -478,3 +436,15 @@ def getDir(id, conv):
                 return dir
         return Directory.objects.filter(Conv_User=conv).order_by("id")[0]
     return None
+
+def getMsg(msgid):
+    perf = PerformanceProfiler("getMsg")
+    try:
+        return Messages.objects.get(pk=msgid)
+    except:
+        return -1
+def getMsgFromConv(msgid, conv):
+    try:
+        return conv.Messages.get(pk=msgid)
+    except:
+        return -1
