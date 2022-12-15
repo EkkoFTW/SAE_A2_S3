@@ -234,11 +234,27 @@ def handler(request):
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
-    user = request.user
-    if not user.is_authenticated:
-        return redirect('log')
     context = {}
     template = loader.get_template('Messagerie/file.html')
+    perf = PerformanceProfiler("log")
+    context = {}
+    if "connect" in request.POST:
+        username = request.POST['usernameconnect']
+        password = request.POST['passwordconnect']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+        else:
+            return redirect('log')
+    elif "create" in request.POST:
+        username = request.POST['username']
+        email = request.POST['email']
+        user = Users.objects.create_user(username, email, request.POST['password'])
+        if user is not None:
+            login(request, user)
+        else:
+            return redirect('log')
+    user = request.user
     conv_list = user.Conv_User.all()
     firstConv = None
     latest_message_list = None
