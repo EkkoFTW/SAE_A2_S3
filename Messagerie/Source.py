@@ -90,7 +90,6 @@ def handle_form_response(request, user, conv, firstConv):
         elif 'enterDir' in request.POST:
             return enterDir(request, request.POST['enterDir'], conv)
         elif 'current_dir' in request.POST:
-            print(str(request.POST['current_dir']))
             return previousDir(request, request.POST['current_dir'], conv)
 
 def previousDir(request, previous_dir, conv):
@@ -116,7 +115,6 @@ def get_all_files(conv, directory):
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
         else:
             directory = getDir(directory, conv)
-        print(directory)
         dirs = Directory.objects.filter(parent=directory)
         for dir in dirs:
             subdirs.append(dir)
@@ -127,25 +125,6 @@ def get_all_files(conv, directory):
         return all_files, subdirs
     else:
         return None, None
-
-def auto_login(Sessionid, Userid):
-    #perf = PerformanceProfiler("auto_login")
-    #print('DEBUG: function "auto_login(' + str(Sessionid) + ', ' + str(Userid) + ') ---> ', end="")
-    if Sessionid is None or Userid is None:
-        #print("Nop")
-        return -1
-    user = Users.objects.get(email=Userid)
-    if user is None:
-        #print("userid dosn't exist")
-        #print("")
-        return -1
-    sessionid = user.sessionid
-    if sessionid == Sessionid:
-        #print("Connected to " + str(user))
-        return user
-    else:
-        #print("Wrong SessionID for " + str(user))
-        return -1
 
 def createConv(request, user, convName):
     #perf = PerformanceProfiler("createConv")
@@ -232,7 +211,6 @@ def sendMsg(user, request):
                     dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0])
                 except:
                     print("Dir conv does not exist")
-            print(dir)
             i = 0
             files = []
             for f in Files:
@@ -240,6 +218,7 @@ def sendMsg(user, request):
                 toAdd.file = f
                 name = toAdd.file.name.split("/")
                 name = name[len(name)-1]
+                toAdd.Title = name
                 toAdd.file.name = str(conv.id) + "/" + str(user.pk) + "/" + name
                 toAdd.directory = dir
                 files.append(toAdd)
@@ -397,9 +376,6 @@ def deleteFile(id):
             return -1
         else:
             file.Message.files.remove(file)
-            print("Message contains :")
-            print(not file.Message.files.all().exists())
-            print(file.Message.Text)
             if(not file.Message.files.all().exists() and file.Message.Text == ""):
                 file.Message.delete()
             file.delete()

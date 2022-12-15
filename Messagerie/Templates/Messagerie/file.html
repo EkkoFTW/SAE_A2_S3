@@ -17,7 +17,6 @@
                 <form method="post">
                     {% csrf_token %}
                     <label> {{ conv.Name }} </label>
-                    <label> {{ conv.id }} </label>
                     <button type="submit" name="selectConv" value="{{conv.id}}"> Select </button>
                     <button type="submit" name="deleteConv" value="{{conv.id}}"> Delete </button>
                     <br>
@@ -54,7 +53,7 @@
                 <label> {{ file.Title }} </label>
                 <button type="submit" name="selectFile" value="{{file.id}}"> Select </button>
                 <button type="submit" name="deleteFile" value="{{file.id}}"> Delete </button>
-                <button type="submit" name="downloadFile" value="{{file}}"> Download </button>
+                <button type="submit" name="downloadFile" value="{{file.id}}"> Download </button>
                 <br>
             </form>
             {% endfor %}

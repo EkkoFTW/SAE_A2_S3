@@ -417,3 +417,53 @@ ws.onmessage = function (msg){
         askConvById(msg.convid);
     }
 }
+
+function loadMessages(){
+    let displayMod = document.getElementById("displayMod");
+    displayMod.innerHTML = "";
+    let listUl = displayMod.appendChild(document.createElement("ul"));
+    listUl.id = "msgUl";
+    selectConv("Begin");
+}
+
+
+function loadFiles(files, dirs){
+    let displayMod = document.getElementById("displayMod");
+    displayMod.innerHTML = "";
+    let listUl = displayMod.appendChild(document.createElement("ul"));
+    for(dir in dirs){
+
+    }
+    for(file in files){
+        loadFile(file, displayMod);
+    }
+}
+
+function loadDir(dir, parent){
+    let listIl = parent.appendChild(document.createElement("il"));
+    let label = listIl.appendChild(document.createElement("label"))
+    label.innerText = dir.title;
+    listIl.appendChild(createButton("submit", "selectDir", dir.id, "Select"));
+    listIl.appendChild(createButton("submit", "deleteDir", dir.id, "Delete"));
+    listIl.appendChild(createButton("submit", "enterDir", dir.id, "Enter"));
+}
+
+function loadFile(file, parent){
+    let listIl = parent.appendChild(document.createElement("il"));
+    let label = listIl.appendChild(document.createElement("label"))
+    label.innerText = file.Title;
+    listIl.appendChild(createButton("submit", "selectFile", file.id, "Select"));
+    listIl.appendChild(createButton("submit", "deleteFile", file.id, "Delete"));
+    listIl.appendChild(createButton("submit", "downloadFile", file.id, "Download"));
+}
+
+function createButton(type, name, value, innerText=null, id=null, classe=null){
+    let button = document.createElement("button");
+    button.type = type;
+    button.name = name;
+    button.value = value;
+    button.innerText = innerText;
+    button.id = id;
+    button.class = classe;
+    return button
+}
