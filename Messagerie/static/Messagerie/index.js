@@ -37,7 +37,6 @@ function selectConv(convid){
              'X-CSRFToken': csrf_token,
          },
          success: function (response) {
-             ws.send(JSON.stringify(response));
          }
      })
 }
@@ -211,7 +210,7 @@ function onClickConvButton(type, convid, userid = "-1"){
                 'X-CSRFToken': csrf_token,
             },
             success: function (response) {
-                ws.send(JSON.stringify(response));
+                //ws.send(JSON.stringify(response));
             }
         })
     }
@@ -234,7 +233,7 @@ function onClickMsgButton(type, msgid){
                 'X-CSRFToken': csrf_token,
             },
             success: function (response) {
-                ws.send(JSON.stringify(response));
+                //ws.send(JSON.stringify(response));
             }
         })
     }
@@ -257,7 +256,7 @@ document.getElementById("createConvButton").onclick = function (){
             'X-CSRFToken' : csrf_token,
         },
         success: function (response){
-            ws.send(JSON.stringify(response));
+            //ws.send(JSON.stringify(response));
         }
     })
 }
@@ -282,7 +281,7 @@ document.getElementById("messageSubmit").onclick = function (e){
             'X-CSRFToken' : csrf_token,
         },
         success: function (response){
-            ws.send(JSON.stringify(response));
+            //ws.send(JSON.stringify(response));
         }
     })
 }
@@ -305,7 +304,7 @@ document.getElementById("addToConv").onclick = function (){
         },
         success: function (response){
             if (response.response) {
-                ws.send(JSON.stringify(response));
+                //ws.send(JSON.stringify(response));
             }
         }
     })
@@ -413,24 +412,40 @@ chatbox.onscroll = function (){
 }
 
 function askMsgById(msgid){
-
+    let fd = new FormData();
+    fd.append("type", "askMsgById");
+    fd.append("msgid", msgid);
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response) {
+            JsonToMsg(response, true);
+        }
+    })
 }
 
 ws.onmessage = function (msg){
     msg = JSON.parse(msg.data);
     if (msg.type === "sendMessage"){
-        JsonToMsg(msg, true);
+        askMsgById(msg.msgid);
     }else if (msg.type === "selectConv"){
         document.getElementById("msgUl").innerHTML = "";
-        document.getElementById("convName").innerHTML = msg.convname;
         document.getElementById("userList").innerHTML = "";
+        document.getElementById("convName").innerHTML = msg.convname;
         askUser(msg.convid);
         fetchMsg(0);
     }
     else if (msg.type === "userToKick"){
         document.getElementById("userList").removeChild(document.getElementById("userid"+msg.userid));
     }else if (msg.type === "kickFromConv"){
-        ws.send(JSON.stringify({"type": "hasBeenKicked", "convid": msg.convid}))
         document.getElementById("convList").removeChild(document.getElementById("idConv"+msg.convid));
         selectConv("Begin");
     }
@@ -442,7 +457,6 @@ ws.onmessage = function (msg){
     }else if (msg.type === "got_addedtoconv"){
         askConvById(msg.convid);
     }else if (msg.type === "msgToDelete"){
-        console.log(msg.msgid)
-        askMsgById(msg.msgid);
+        document.getElementById("msgUl").removeChild(document.getElementById("msgId"+msg.msgid));
     }
 }
