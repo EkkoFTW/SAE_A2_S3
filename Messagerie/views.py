@@ -20,6 +20,8 @@ from channels.layers import get_channel_layer
 
 def index(request):
     perf = PerformanceProfiler("index")
+    createFile(None, None, settings.MEDIA_ROOT+"\\files\\1029\\1\\myFile", None)
+
     if not request.user.is_authenticated:
         return redirect('log')
     template = loader.get_template('Messagerie/Index.html')
@@ -116,11 +118,17 @@ def handler(request):
         type = request.POST['type']
         if "sendMessage" == type:
             user = request.user
-            msg = sendMsg(user, request)
+            RequestFiles = request.FILES.getlist('files')
             convid = request.session['actualConv']
-            fileList = []
-            for fl in msg.files.all():
-                fileList.append(fl.file.url)
+            msg = createMsg(user, request.POST['text'])
+            try:
+                msg.Reply = getMsg(request.POST['Reply'])
+            except:
+                pass
+            for fl in RequestFiles:
+                msg.files.add(createFile(fl, user, settings.MEDIA_ROOT+"\\files\\"+str(convid)+"\\"+str(user.id)+"\\", msg))
+            msg.save()
+            NewSendMsg(getConv(convid), msg)
             async_to_sync(channel_layer.group_send)("convId"+str(convid), {"type": "sendMessage", "msgid": msg.id})
         elif "fetchMsg" == type:
             user = request.user
@@ -132,15 +140,19 @@ def handler(request):
                 request.session['actualConv'] = conv.id
             if conv == -1:
                 return JsonResponse(data={'type': "non"})
-
             msgList = fetchAskedMsg(conv, first)
             Dict = {}
             records = []
+            replyid = -1
             for msg in msgList:
                 fileList = []
+                try:
+                    replyid = msg.Reply.id
+                except:
+                    pass
                 for fl in msg.files.all():
                     fileList.append(fl.file.url)
-                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
             Dict["msgList"] = records
             return JsonResponse(data=Dict)
         elif "fetchConv" == type:
@@ -260,10 +272,15 @@ def handler(request):
             conv = getConv(request.session['actualConv'])
             msg = getMsgFromConv(request.POST['msgid'], conv)
             fileList = []
+            replyid = -1
+            try:
+                replyid = msg.Reply.id
+            except:
+                pass
             for fl in msg.files.all():
                 fileList.append(fl.file.url)
             return JsonResponse({"userid": msg.Sender.id, "username": msg.Sender.username_value,
-                        "convid": request.session['actualConv'], "text": msg.Text, "files": fileList,
+                        "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "files": fileList,
                         "date": msg.Date, "msgid": msg.id})
     return JsonResponse(data="EMPTY", safe=False)
 

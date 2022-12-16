@@ -2,7 +2,7 @@ const csrf_token = document.querySelector("#csrf_token").innerHTML;
 const addrIP = "http://127.0.0.1:8000/Messagerie/";
 let ws = new WebSocket("ws://127.0.0.1:8000/ws/");
 
-let actualConv = null;
+let replyTo = null;
 
 ws.onopen = function (e){
     fetchConvList();
@@ -86,7 +86,7 @@ function fetchMsg(first= 0) {
             try {
                 let oldLatest = document.getElementById("msgUl").children[0]
                 for(let i = 0; i < response['msgList'].length; i++){
-                    JsonToMsg(response['msgList'][i])
+                    JsonToMsg(response['msgList'][i]);
                 }
                 if (first !== 0) {
                     oldLatest.scrollIntoView();
@@ -107,7 +107,8 @@ function JsonToMsg(msg, toAppend= false){
     let text = msg.text;
     let files = msg.files;
     let date = msg.date;
-    genMsg(userid, username, convid, msgid,text, files, date, toAppend);
+    let reply = msg.reply
+    genMsg(userid, username, convid, msgid, text, files, date, reply, toAppend);
 }
 
 function JsonToConv(conv){
@@ -116,7 +117,10 @@ function JsonToConv(conv){
     genConv(convid, convname);
 }
 
-function genMsg(userid, username, convid, msgid,text, files, date, toAppend){
+function genMsg(userid, username, convid, msgid, text, files, date, reply, toAppend){
+    if (reply !== -1){
+        askMsgById(reply);
+    }
     let bottom = false
     if (chatbox.scrollHeight-chatbox.scrollTop < 700){
         bottom = true
@@ -159,8 +163,16 @@ function genMsg(userid, username, convid, msgid,text, files, date, toAppend){
     btnReply.id = "btnMsgReply" + msgid;
     btnReply.value = msgid;
     btnReply.innerHTML = "Reply";
+    btnReply.onclick = onClickReplyButton(msgid);
     if (toAppend){
         chatbox.scrollTop = chatbox.scrollHeight;
+    }
+}
+
+function onClickReplyButton(msgid){
+    return function() {
+        replyTo = msgid;
+        document.getElementById("toSend").focus();
     }
 }
 
@@ -268,6 +280,8 @@ document.getElementById("messageSubmit").onclick = function (e){
     let fd = new FormData();
     fd.append("type", "sendMessage")
     fd.append("text", messageTxt);
+    fd.append("Reply", replyTo)
+    replyTo = null;
     addFiles(fd, messageFiles);
     $.ajax({
         type: "POST",

@@ -73,7 +73,7 @@ class Message(models.Model):
     files = models.ManyToManyField(File)
 
     def __str__(self):
-        return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+        return "id: " + str(self.id) + " S: " + str(self.Sender) + "  R:  " + "   Text: " + str(self.Text) + "   Time: " + str(self.Date)
 
 class Directory(models.Model):
     title = models.CharField(max_length=100)

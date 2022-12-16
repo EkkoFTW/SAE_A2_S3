@@ -236,11 +236,38 @@ def sendMsg(user, request):
         return toAdd
     except:
         return -1
- 
+
+
+def createMsg(sender, text, reply=None):
+    msg = Message(Sender=sender, Text=text, Reply=reply, Date=timezone.now())
+    msg.save()
+    return msg
+
+def createFile(_file, sender, path, msg=None):
+    perf = PerformanceProfiler("createFile")
+    dirPath = path.split("\\")[0:len(path.split("\\"))-2]
+    fPath = ""
+    for part in dirPath:
+        fPath += part + "\\"
+    directory = Directory.objects.get(path=fPath)
+    file = File()
+    file.file = _file
+    file.file.Title = file.file.name
+    file.Message = msg
+    file.directory = directory
+    file.Author = sender
+    file.dateAdded = timezone.now()
+    file.save()
+    return file
+
+
+def NewSendMsg(conv, msg):
+    perf = PerformanceProfiler("NewSendMsg")
+    conv.Messages.add(msg)
+
 
 def showMessageList(conv):
    return conv.Messages.all().order_by('Date')
-
 
 def whisper(Receiver, Sender, request, baseConv):
     perf = PerformanceProfiler("whisper")
@@ -440,7 +467,7 @@ def getDir(id, conv):
 def getMsg(msgid):
     perf = PerformanceProfiler("getMsg")
     try:
-        return Messages.objects.get(pk=msgid)
+        return Message.objects.get(pk=msgid)
     except:
         return -1
 def getMsgFromConv(msgid, conv):
