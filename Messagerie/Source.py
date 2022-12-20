@@ -108,10 +108,12 @@ def get_all_QS_files(conv):
             QSfiles.append(message.files.all())
     return QSfiles
 
-def get_all_files(conv, directory):
+def get_all_files(conv, directory, ws = False):
     if conv is not None:
         subdirs = []
         if directory is None or directory == "":
+            if(ws):
+                conv = Conv_User.objects.get(id=conv)
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
         else:
             directory = getDir(directory, conv)

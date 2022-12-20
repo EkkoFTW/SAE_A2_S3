@@ -29,10 +29,7 @@
                     <div id="userToAdd" name="userToAdd" contenteditable="true"></div>
                     <button type="submit" id="addToConv">Ajouter</button>
                 <!--</form>-->
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" name="toFiles"><img src="/media/website/file.png" alt="Files"></button>
-                </form>
+                    <button type="submit" id="FileMessage" name="toFiles"><img src="/media/website/file.png" alt="Files"></button>
                 <form method="post">
                     {% csrf_token %}
                     <button type="submit" name="logout">Logout</button>

@@ -231,6 +231,49 @@ def handler(request):
         elif "askConvById" == type:
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
+        elif "fetchFiles" == type:
+            all_files, all_subdirs = get_all_files(request.session["actualConv"], request.session["current_dir"], True)
+            Dict = {}
+            dictFiles = []
+            dictDirs = []
+            print(all_files)
+            print(all_subdirs)
+            for i in range(len(all_files)):
+                print(all_files[i])
+                print(all_files[i].Title)
+                dictFiles.append({"path":all_files[i].file.path, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
+            for i in range(len(all_subdirs)):
+                print(all_subdirs[i])
+                dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
+            if getDir(request.session["current_dir"], request.session["actualConv"]).parent is None:
+                Dict["parent"] = 0
+            else:
+                Dict["parent"] = 1
+            Dict["all_files"] = dictFiles
+            Dict["all_subdirs"] = dictDirs
+            return JsonResponse(data=Dict)
+        elif "enterDir" == type:
+            enterDir(request, request.POST["dirId"], request.session["actualConv"])
+            return JsonResponse(data={})
+        elif "backDir" == type:
+            print("Backdir")
+            print("Current dir :")
+            print(request.session["current_dir"])
+            parent = getDir(request.session["current_dir"], request.session["actualConv"]).parent
+            if (parent is not None):
+                request.session["current_dir"] = parent.id
+                print("Current dir set successfully !")
+                print("New current dir = ")
+                print(request.session["current_dir"])
+                if parent.parent is None:
+                    return JsonResponse(data={})
+                else:
+                    return JsonResponse(data={})
+            else:
+                print("Security beach avoided. Pay attention to potential attacks through the file system via the website function backDir().")
+                print(request.session["current_dir"])
+                return JsonResponse(data="Either a back() function error or someone tried to access a parent file through unauthorised commands. Error raised to website administration.", safe=False)
+
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
