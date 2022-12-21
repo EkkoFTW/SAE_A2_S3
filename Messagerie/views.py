@@ -232,23 +232,36 @@ def handler(request):
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
         elif "fetchFiles" == type:
-            all_files, all_subdirs = get_all_files(request.session["actualConv"], request.session["current_dir"], True)
+            found = False
+            try:
+                current_dir = request.session["current_dir"]
+                found = True
+            except:
+                current_dir = Directory.objects.filter(Conv_User=request.session["actualConv"])
+
+                for dir in current_dir:
+                    if dir.parent is None:
+                        current_dir = dir
+                        found = True
+                        break
             Dict = {}
             dictFiles = []
             dictDirs = []
-            print(all_files)
-            print(all_subdirs)
-            for i in range(len(all_files)):
-                print(all_files[i])
-                print(all_files[i].Title)
-                dictFiles.append({"path":all_files[i].file.path, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
-            for i in range(len(all_subdirs)):
-                print(all_subdirs[i])
-                dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
-            if getDir(request.session["current_dir"], request.session["actualConv"]).parent is None:
-                Dict["parent"] = 0
-            else:
-                Dict["parent"] = 1
+            if found:
+                all_files, all_subdirs = get_all_files(request.session["actualConv"], current_dir, True)
+                print(all_files)
+                print(all_subdirs)
+                for i in range(len(all_files)):
+                    print(all_files[i])
+                    print(all_files[i].Title)
+                    dictFiles.append({"path":all_files[i].file.path, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
+                for i in range(len(all_subdirs)):
+                    print(all_subdirs[i])
+                    dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
+                if getDir(current_dir, request.session["actualConv"]).parent is None:
+                    Dict["parent"] = 0
+                else:
+                    Dict["parent"] = 1
             Dict["all_files"] = dictFiles
             Dict["all_subdirs"] = dictDirs
             return JsonResponse(data=Dict)
