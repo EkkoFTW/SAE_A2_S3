@@ -10,7 +10,7 @@ ws.onopen = function (e){
     fetchConvList();
     selectConv("Begin");
     let toFiles = document.getElementById("FileMessage");
-    toFiles.onclick = OnClickloadFiles();
+    toFiles.onclick = OnClickLoadFiles();
 }
 
 ws.onclose = function (e) {
@@ -217,6 +217,7 @@ function onClickConvButton(type, convid, userid = "-1"){
             },
             success: function (response) {
                 ws.send(JSON.stringify(response));
+                document.getElementById("convName").innerHTML = response["convname"]
             }
         })
     }
@@ -243,6 +244,7 @@ document.getElementById("createConvButton").onclick = function (){
         }
     })
 }
+
 function prepareSendButton() {
     document.getElementById("toSend").focus();
     let sendButton = document.getElementById("messageSubmit");
@@ -472,7 +474,7 @@ function loadMessages(){
     let displayMod = document.getElementById("displayMod");
     console.log("Inside loadMessages")
     let toFiles = document.getElementById("FileMessage");
-    toFiles.onclick = OnClickloadFiles();
+    toFiles.onclick = OnClickLoadFiles();
     if(messageMode === false){
         messageMode = true;
         displayMod.innerHTML = "";
@@ -532,18 +534,54 @@ function createDiv(id = null, classe = null, parent = null){
     return div;
 }
 
-function OnClickloadFiles(){
+function OnClickLoadFiles(){
     return function() {
         loadFiles();
     }
 }
 
 function loadFiles(reload_page = true){
-    messageMode = false;
+    if(messageMode){
+        messageMode = false;
+        let container = document.getElementsByClassName("sub-container-right")[0];
+        console.log(container.children)
+        let containerAddDir = createDiv("addDir");
+        container.insertBefore(containerAddDir, container.children[3]);
+        let addDirField = createDiv("addDirField", null, containerAddDir);
+        addDirField.contentEditable = "true";
+        let addDirButton = createButton("submit", "addDirButton", null, "Ajouter", "addDirButton")
+        addDirButton.onclick = OnClickAddDir;
+        containerAddDir.appendChild(addDirButton);
+
+    }
     let toMessages = document.getElementById("FileMessage");
     toMessages.onclick = OnClickLoadMessages();
     fetchFiles();
     console.log("end loadFiles")
+}
+
+function OnClickAddDir(){
+    let field = document.getElementById("addDirField");
+    let text = field.innerHTML;
+    let fd = new FormData();
+    fd.append("type", "addDir");
+    fd.append("name", text);
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response) {
+            field.innerHTML = "";
+            loadFiles();
+        }
+    })
 }
 
 function OnClickEnterDir(dirId){
@@ -625,6 +663,12 @@ function genFile(title, id){
     console.log("Inside genFile");                        //To secure later with less datas
     let parent = document.getElementById("ulDocuments");
     let listIl = parent.appendChild(document.createElement("li"));
+    listIl.draggable = true;
+    listIl.ondragstart = dragStartListener;
+    listIl.ondragenter = dragEnterDirListener;
+    listIl.ondragover = dragOverListener;
+    listIl.setAttribute("data-type", "File");
+    listIl.setAttribute("data-id", id);
     let label = listIl.appendChild(document.createElement("label"));
     label.innerText = title;
     listIl.appendChild(createButton("submit", "selectFile", id, "Select"));
@@ -634,33 +678,88 @@ function genFile(title, id){
 
 function genDir(title, id, parent_id, conv_id){
     let parent = document.getElementById("ulDocuments");
+    console.log("Generating directory " + title + " " + id);
     if(parent == null){
-        console.log("parent is null")
+        console.log("Generating ulDocuments because is null");
         let displayMod = document.getElementById("displayMod");
         parent = document.createElement("ul");
         parent.id = "ulDocuments";
         displayMod.appendChild(parent);
-        console.log("New parent value :");
-        console.log(parent);
-        console.log("But");
     }
-    else{
-        parent.innerHTML = "";
-    }
-    console.log(parent==null);
-    console.log(parent)
-    console.log("---------------------------")
     let listIl = parent.appendChild(document.createElement("li"));
+    listIl.setAttribute("data-type", "Dir");
+    listIl.setAttribute("data-id", id);
+    listIl.draggable = true;
+    listIl.ondragstart = dragStartListener;
+    listIl.ondragenter = dragEnterDirListener;
+    listIl.ondragover = dragOverListener;
+    listIl.ondrop = dropDirListener;
     let label = listIl.appendChild(document.createElement("label"));
     label.innerText = title;
     listIl.appendChild(createButton("submit", "selectDir", id, "Select"));
     listIl.appendChild(createButton("submit", "deleteDir", id, "Delete"));
-    console.log("Creating EnterDir button...");
     let dirEnterButton = createButton("submit", "enterDir", id, "Enter");
-    console.log("EnterDir onclick adding...");
     dirEnterButton.onclick= OnClickEnterDir(id);
-    console.log("Onclick added !");
     listIl.appendChild(dirEnterButton);
+}
+
+function dragStartListener(e){
+    e.dataTransfer.effectAllowed="move";
+    console.log("dragStartListener");
+    let data = e.target.dataset.valueOf();
+    data = JSON.stringify(data);
+    e.dataTransfer.setData("text/plain", data);
+}
+
+function dragOverListener(e){
+    e.preventDefault();
+}
+
+function dragEnterDirListener(e){
+    e.preventDefault();
+}
+
+function dropDirListener(e){
+    console.log('----------------------');
+    console.log(e);
+    e.preventDefault();
+    let fd = new FormData();
+    let target = e.target.closest("li");
+    console.log(target);
+    let receiverDir = target.dataset.valueOf()["id"];
+    console.log("receiverDir = " + receiverDir);
+    let value = JSON.parse(e.dataTransfer.getData("text/plain"));
+    console.log(value);
+    let type = value["type"];
+    console.log(type)
+    let id = value["id"];
+    console.log(id);
+    console.log("Inside dropDirListener");
+    fd.append("type", 'dropInDir');
+    fd.append("mvItemId", id);
+    fd.append("receiverDir", receiverDir)
+    fd.append("itemType", type)
+    console.log("Send request...")
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            if(response["success"]){
+                loadFiles();
+            }
+            else{
+                alert("Error.");
+            }
+        }
+    })
 }
 
 function createButton(type, name, value, innerText=null, id=null, classe=null){
@@ -695,20 +794,16 @@ function fetchFiles(){
                 console.log("Inside try of fetchFiles");
                 console.log("Number of subdirs:");
                 console.log(response["all_subdirs"].length)
+                console.log(response["all_subdirs"])
 
                 let displayMod = document.getElementById("displayMod");
                 displayMod.innerHTML = "";
-
-
-
                 if(response["parent"] === 0){
                     let displayUl = document.createElement("ul");
                     displayUl.id = "ulDocuments";
                     displayMod.appendChild(displayUl);
-                    console.log("No parent directory")
                 }
                 else {
-                    console.log("A parent exist");
                     let displayMod = document.getElementById("displayMod");
                     let backButton = createButton("submit", "back", "", "Back", "backButton");
                     backButton.onclick = OnClickBackDir();
@@ -718,6 +813,7 @@ function fetchFiles(){
                     displayMod.appendChild(displayUl);
                 }
                 for(let i = 0; i < response["all_subdirs"].length; i++){
+                    console.log("Subdir id : " + i)
                     JsonToDir(response['all_subdirs'][i]);
                 }
                 console.log("Number of file:");

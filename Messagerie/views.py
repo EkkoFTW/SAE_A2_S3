@@ -286,6 +286,33 @@ def handler(request):
                 print("Security beach avoided. Pay attention to potential attacks through the file system via the website function backDir().")
                 print(request.session["current_dir"])
                 return JsonResponse(data="Either a back() function error or someone tried to access a parent file through unauthorised commands. Error raised to website administration.", safe=False)
+        elif type == "dropInDir":
+            print("--------------")
+            print(request.POST["itemType"])
+            print(request.POST["receiverDir"])
+            print(request.POST["mvItemId"])
+            if request.POST["itemType"] == "Dir":
+                mvDir = request.POST["mvItemId"]
+                receiverDir = request.POST["receiverDir"]
+                conv = request.session["actualConv"]
+                mvDir = getDir(mvDir, conv)
+                receiverDir = getDir(receiverDir, conv)
+                success = move_Dir(mvDir, receiverDir)
+                return JsonResponse(data={"success": success})
+            elif request.POST["itemType"] == "File":
+                conv = request.session["actualConv"]
+                receiverDir = getDir(request.POST["receiverDir"], conv)
+                file = getFile(request.POST["mvItemId"], conv)
+                return JsonResponse(data={"success": move_File(file, receiverDir)})
+            else:
+                return JsonResponse(data={"success": False})
+        elif type == "addDir":
+            dirName = request.POST["name"]
+            conv = request.session["actualConv"]
+            parent = getDir(request.session["current_dir"], conv)
+            print(conv)
+            conv = getConv(conv)
+            createDir(parent.path,dirName,conv,parent,True)
 
     return JsonResponse(data="EMPTY", safe=False)
 
@@ -363,7 +390,8 @@ def file(request):
     all_files = []
     list_subdirs = []
     try:
-        all_files, list_subdirs = get_all_files(conv, current_dir)
+        all_files, list_subdirs = get_all_files(conv,
+                                                )
         previous_dir = None
         if list_subdirs is not None and len(list_subdirs) == 0 and current_dir is not None:
             previous_dir = getDir(current_dir, conv)
