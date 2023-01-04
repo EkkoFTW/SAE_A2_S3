@@ -421,7 +421,7 @@ def is_path_creatable(pathname: str) -> bool:
 
 
 def is_name_safe(pathname: str):
-    if(pathname.find("\\") or pathname.find("/")):
+    if(str(pathname).find("\\") or str(pathname).find("/")):
         return False
     else:
         return True
@@ -431,11 +431,8 @@ def createDir(path, title, conv, parent, useTitleInPath = False):
     print("--------------------------------------------")
     print(path)
     if (useTitleInPath):
-        if (is_path_creatable(path + str(title)) and is_name_safe(title)):
-            path = path + str(title) + "\\"
-            print("Path creatable")
-        else:
-            return False
+        path = path + str(title) + "\\"
+        print("Path creatable")
     if not os.path.isdir(path):
         dir = Directory()
         dir.path = path

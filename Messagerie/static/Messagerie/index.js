@@ -478,6 +478,7 @@ function loadMessages(){
     if(messageMode === false){
         messageMode = true;
         displayMod.innerHTML = "";
+        document.getElementById("addDir").remove();
         createMessageListEnvironment(displayMod);
         createMessageInput(displayMod);
         prepareSendButton();
@@ -544,7 +545,7 @@ function loadFiles(reload_page = true){
     if(messageMode){
         messageMode = false;
         let container = document.getElementsByClassName("sub-container-right")[0];
-        console.log(container.children)
+        console.log(container.children);
         let containerAddDir = createDiv("addDir");
         container.insertBefore(containerAddDir, container.children[3]);
         let addDirField = createDiv("addDirField", null, containerAddDir);
