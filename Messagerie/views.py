@@ -1,27 +1,14 @@
-from django.http import HttpResponse, JsonResponse
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.http import HttpResponse
 from django.http import FileResponse
-from django.http import HttpRequest
-from django.template import loader
-from django.shortcuts import get_object_or_404, render
 import mimetypes
-from .forms import FileForm
-from .models import *
 from .Source import *
 from django.shortcuts import redirect
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-
-#latest_message_list, conv_list, conv, list_user
-
 def index(request):
     perf = PerformanceProfiler("index")
-    createFile(None, None, settings.MEDIA_ROOT+"\\files\\1029\\1\\myFile", None)
-
     if not request.user.is_authenticated:
         return redirect('log')
     template = loader.get_template('Messagerie/Index.html')

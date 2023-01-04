@@ -119,7 +119,7 @@ function JsonToConv(conv){
 
 function genMsg(userid, username, convid, msgid, text, files, date, reply, toAppend){
     if (reply !== -1){
-        askMsgById(reply);
+        //askMsgById(reply);
     }
     let bottom = false
     if (chatbox.scrollHeight-chatbox.scrollTop < 700){
@@ -132,32 +132,37 @@ function genMsg(userid, username, convid, msgid, text, files, date, reply, toApp
     }else {
         li = msgUl.appendChild(document.createElement("li"));
     }
-    li.id = "msgId"+msgid
-    li.appendChild(document.createElement("p")).innerHTML = date;
-    let user = li.appendChild(document.createElement("a"));
+    li.id = "msgId"+msgid;
+    li.className = "msgLi";
+
+    let topMsgContainer = li.appendChild(document.createElement("div"))
+    topMsgContainer.className = "msgTopContainer";
+
+    let topMsgLeft = topMsgContainer.appendChild(document.createElement("div"));
+    topMsgLeft.className = "msgTopLeft";
+    let user = topMsgLeft.appendChild(document.createElement("a"));
+    user.className = "userA";
+    let dateP = topMsgLeft.appendChild(document.createElement("p"));
+    dateP.innerHTML = date;
+    dateP.className = "dateP";
     user.innerHTML = username;
-    li.appendChild(document.createElement("p")).innerHTML = text;
-    let file;
-    for (let i = 0; i < files.length; i++) {
-        file = li.appendChild(document.createElement("img"));
-        file.className = "aImg";
-        file.src = files[i];
-        file.alt = files[i];
-    }
-    let btnDelete = li.appendChild(document.createElement("button"));
+
+    let topMsgRight =topMsgContainer.appendChild(document.createElement("div"));
+    topMsgRight.className = "msgTopRight";
+    let btnDelete = topMsgRight.appendChild(document.createElement("button"));
     btnDelete.type = "submit";
     btnDelete.className = "btnMsgDelete";
     btnDelete.id = "btnMsgDelete" + msgid;
     btnDelete.value = msgid;
     btnDelete.innerHTML = "Delete";
     btnDelete.onclick = onClickMsgButton("deleteMsg", msgid);
-    let btnEdit = li.appendChild(document.createElement("button"));
+    let btnEdit = topMsgRight.appendChild(document.createElement("button"));
     btnEdit.type = "submit";
     btnEdit.className = "btnMsgEdit";
     btnEdit.id = "btnMsgEdit" + msgid;
     btnEdit.value = msgid;
     btnEdit.innerHTML = "Edit";
-    let btnReply = li.appendChild(document.createElement("button"));
+    let btnReply = topMsgRight.appendChild(document.createElement("button"));
     btnReply.type = "submit";
     btnReply.className = "btnMsgReply";
     btnReply.id = "btnMsgReply" + msgid;
@@ -167,6 +172,17 @@ function genMsg(userid, username, convid, msgid, text, files, date, reply, toApp
     if (toAppend){
         chatbox.scrollTop = chatbox.scrollHeight;
     }
+
+
+    li.appendChild(document.createElement("p")).innerHTML = text;
+    let file;
+    for (let i = 0; i < files.length; i++) {
+        file = li.appendChild(document.createElement("img"));
+        file.className = "aImg";
+        file.src = files[i];
+        file.alt = files[i];
+    }
+
 }
 
 function onClickReplyButton(msgid){
