@@ -725,7 +725,13 @@ function dropDirListener(e){
     console.log(e);
     e.preventDefault();
     let fd = new FormData();
-    let target = e.target.closest("li");
+    let target = null;
+    if(e.target.closest("li") != null){
+       target = e.target.closest("li");
+    }
+    else{
+        target = e.target;
+    }
     console.log(target);
     let receiverDir = target.dataset.valueOf()["id"];
     console.log("receiverDir = " + receiverDir);
@@ -807,6 +813,11 @@ function fetchFiles(){
                 else {
                     let displayMod = document.getElementById("displayMod");
                     let backButton = createButton("submit", "back", "", "Back", "backButton");
+                    backButton.setAttribute("data-id", response["parent"]);
+                    backButton.setAttribute("data-type", "Dir");
+                    backButton.ondragenter = dragEnterDirListener;
+                    backButton.ondragover = dragOverListener;
+                    backButton.ondrop = dropDirListener;
                     backButton.onclick = OnClickBackDir();
                     displayMod.appendChild(backButton);
                     let displayUl = document.createElement("ul");

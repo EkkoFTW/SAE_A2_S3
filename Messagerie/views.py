@@ -258,10 +258,11 @@ def handler(request):
                 for i in range(len(all_subdirs)):
                     print(all_subdirs[i])
                     dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
-                if getDir(current_dir, request.session["actualConv"]).parent is None:
+                actualDir = getDir(current_dir, request.session["actualConv"])
+                if actualDir.parent is None:
                     Dict["parent"] = 0
                 else:
-                    Dict["parent"] = 1
+                    Dict["parent"] = actualDir.parent.id
             Dict["all_files"] = dictFiles
             Dict["all_subdirs"] = dictDirs
             return JsonResponse(data=Dict)
@@ -312,7 +313,7 @@ def handler(request):
             parent = getDir(request.session["current_dir"], conv)
             print(conv)
             conv = getConv(conv)
-            createDir(parent.path,dirName,conv,parent,True)
+            createDir(parent.path, dirName, conv, parent, True)
 
     return JsonResponse(data="EMPTY", safe=False)
 

@@ -1,4 +1,5 @@
 import os.path
+import re
 
 import Messagerie.models
 from django.contrib.auth import *
@@ -406,6 +407,7 @@ def move_File(file, parent):
 
 def move_Dir(dir, parent):
     path = parent.path + str(dir.id) + "\\"
+    print(path)
     if os.path.exists(path):
         return False
     else:
@@ -415,24 +417,21 @@ def move_Dir(dir, parent):
         dir.save()
         return True
 
-def is_path_creatable(pathname: str) -> bool:
-    dirname = os.path.dirname(pathname) or os.getcwd()
-    return os.access(dirname, os.W_OK)
-
-
-def is_name_safe(pathname: str):
-    if(str(pathname).find("\\") or str(pathname).find("/")):
+def is_dir_name_safe(filename: str):
+    regex = r"[\\\/<>:\"|\?*]+?|^CON$|^CON\.|^PRN$|^PRN$|^AUX$|^AUX\.|^NUL$|^NUL\.|^COM[0-9]$|COM[0-9]\.|^LPT[0-9]$|LPT[0-9]\."
+    matches = re.finditer(regex, filename, re.MULTILINE)
+    for matchNum, match in enumerate(matches, start=1):
         return False
-    else:
-        return True
+    return True
 
 
 def createDir(path, title, conv, parent, useTitleInPath = False):
     print("--------------------------------------------")
     print(path)
     if (useTitleInPath):
-        path = path + str(title) + "\\"
-        print("Path creatable")
+        if(is_dir_name_safe(title)):
+            path = path + str(title) + "\\"
+            print("Path creatable")
     if not os.path.isdir(path):
         dir = Directory()
         dir.path = path
@@ -475,3 +474,5 @@ def getDir(id, conv):
                 return dir
         return Directory.objects.filter(Conv_User=conv).order_by("id")[0]
     return None
+
+
