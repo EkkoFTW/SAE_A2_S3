@@ -370,16 +370,19 @@ def getLatestConv(user):
         conv = -1
     return conv
     
-def deleteFile(id):
+def deleteFile(id, conv):
     try:
         file = File.objects.get(id=id)
         if file is None:
             return -1
         else:
-            file.Message.files.remove(file)
-            if(not file.Message.files.all().exists() and file.Message.Text == ""):
-                file.Message.delete()
-            file.delete()
+            if (file.directory.Conv_User.id == conv):
+                file.Message.files.remove(file)
+                if(not file.Message.files.all().exists() and file.Message.Text == ""):
+                    file.Message.delete()
+                file.delete()
+            else:
+                print("File not in conv")
     except:
         print("File does not exist or isn't reached")
 
@@ -417,9 +420,9 @@ def move_Dir(dir, parent):
         dir.save()
         return True
 
-def is_dir_name_safe(filename: str):
+def is_dir_name_safe(filename):
     regex = r"[\\\/<>:\"|\?*]+?|^CON$|^CON\.|^PRN$|^PRN$|^AUX$|^AUX\.|^NUL$|^NUL\.|^COM[0-9]$|COM[0-9]\.|^LPT[0-9]$|LPT[0-9]\."
-    matches = re.finditer(regex, filename, re.MULTILINE)
+    matches = re.finditer(regex, str(filename), re.MULTILINE)
     for matchNum, match in enumerate(matches, start=1):
         return False
     return True
@@ -458,7 +461,7 @@ def deleteDir(id, conv):
     if conv is not None:
         dirs = Directory.objects.filter(Conv_User=conv)
         for dir in dirs:
-            if str(dir.id) == id:
+            if str(dir.id) == str(id):
                 dir.delete()
 
 
@@ -476,3 +479,18 @@ def getDir(id, conv):
     return None
 
 
+def renameFile(fileId, convId, title):
+    file = File.objects.get(id=fileId)
+    if(file.directory.Conv_User.id == convId and is_dir_name_safe(title)):
+        file.Title = title
+        os.rename(file.path, file.directory.path + file.Title)
+    else:
+        print("Filename invalid or File not in Directory")
+
+def renameDir(dirId, convId, title):
+    dir = Directory.objects.get(id=dirId)
+    if(dir.Conv_User.id == convId and is_dir_name_safe(title)):
+        dir.title = title
+        os.rename(dir.path, dir.parent.path + title + "\\")
+    else:
+        print("DirectoryName invalid or File not in Directory")

@@ -672,9 +672,13 @@ function genFile(title, id){
     listIl.setAttribute("data-id", id);
     let label = listIl.appendChild(document.createElement("label"));
     label.innerText = title;
-    listIl.appendChild(createButton("submit", "selectFile", id, "Select"));
-    listIl.appendChild(createButton("submit", "deleteFile", id, "Delete"));
-    listIl.appendChild(createButton("submit", "downloadFile", id, "Download"));
+    listIl.appendChild(createButton("submit", "renameFile", id, "Rename"));
+    let btnDelete = createButton("submit", "deleteFile", id, "Delete");
+    btnDelete.onclick = DeleteFile(id);
+    listIl.appendChild(btnDelete);
+    let btnDownload = createButton("submit", "downloadFile", id, "Download");
+    btnDownload.onclick = download(id);
+    listIl.appendChild(btnDownload);
 }
 
 function genDir(title, id, parent_id, conv_id){
@@ -697,8 +701,10 @@ function genDir(title, id, parent_id, conv_id){
     listIl.ondrop = dropDirListener;
     let label = listIl.appendChild(document.createElement("label"));
     label.innerText = title;
-    listIl.appendChild(createButton("submit", "selectDir", id, "Select"));
-    listIl.appendChild(createButton("submit", "deleteDir", id, "Delete"));
+    listIl.appendChild(createButton("submit", "selectDir", id, "Rename"));
+    let btnDelete = createButton("submit", "deleteDir", id, "Delete");
+    btnDelete.onclick = DeleteDir(id);
+    listIl.appendChild(btnDelete);
     let dirEnterButton = createButton("submit", "enterDir", id, "Enter");
     dirEnterButton.onclick= OnClickEnterDir(id);
     listIl.appendChild(dirEnterButton);
@@ -860,6 +866,107 @@ function JsonToDir(dir) {
     let parent_id = dir.parent_id;
     let conv_id = dir.conv_User_id;
     genDir(title, id, parent_id, conv_id, path);
+}
+
+function DeleteDir(dirId){
+    return function f() {
+        let fd = new FormData();
+        fd.append("type", 'deleteDir');
+        fd.append("id", dirId)
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                fetchFiles();
+            }
+        })
+    }
+}
+
+function DeleteFile(fileId){
+    return function f() {
+        let fd = new FormData();
+        fd.append("type", 'deleteFile');
+        fd.append("id", fileId)
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                fetchFiles();
+            }
+        })
+    }
+}
+
+function download(id){
+    let fd = new FormData();
+        fd.append("id", id)
+        fd.append("type", "getFileName")
+        $.ajax({
+        type: "POST",
+        url: addrIP+"handler/",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: false,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (data){
+            fileName = data["title"];
+        }
+        })
+
+
+    return function f() {
+        let fd = new FormData();
+        fd.append("downloadFile", id)
+        $.ajax({
+        type: "POST",
+        url: "download/",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: false,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (data){
+            var blob = new Blob([data], { type: "application/octetstream" });
+            var isIE = false || !!document.documentMode;
+                    if (isIE) {
+                        window.navigator.msSaveBlob(blob, fileName);
+                    } else {
+                        var url = window.URL || window.webkitURL;
+                        link = url.createObjectURL(blob);
+                        var a = $("<a />");
+                        a.attr("download", fileName);
+                        a.attr("href", link);
+                        $("body").append(a);
+                        a[0].click();
+                        $("body").remove(a);
+                    }
+        }
+    })
+    }
 }
 
 createMessageListEnvironment(document.getElementById("displayMod"));

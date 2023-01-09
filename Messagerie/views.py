@@ -11,6 +11,7 @@ from .forms import FileForm
 from .models import *
 from .Source import *
 from django.shortcuts import redirect
+from wsgiref.util import FileWrapper
 
 #latest_message_list, conv_list, conv, list_user
 
@@ -314,7 +315,19 @@ def handler(request):
             print(conv)
             conv = getConv(conv)
             createDir(parent.path, dirName, conv, parent, True)
-
+        elif type == "deleteDir":
+            dirId = request.POST["id"]
+            deleteDir(dirId, request.session["actualConv"])
+        elif type == "deleteFile":
+            fileId = request.POST["id"]
+            print("Delete file id = " + str(fileId))
+            deleteFile(fileId, request.session["actualConv"])
+        elif type == "getFileName":
+            fileId = request.POST["id"]
+            try:
+                return JsonResponse(data={"title" : File.objects.get(id=fileId).Title})
+            except:
+                pass
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):
@@ -406,6 +419,7 @@ def file(request):
     return HttpResponse(template.render(context, request))
 
 def download_file(request, filepath):
+    print(request.POST)
     if "downloadFile" in request.POST:
         file = File.objects.get(id=request.POST['downloadFile'])
         print(file)
@@ -415,6 +429,24 @@ def download_file(request, filepath):
         fl = open(fl_path, 'rb')
         mime_type, _ = mimetypes.guess_type(fl_path)
         response = FileResponse(fl)
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
+    else:
+        return index(request)
+
+
+def downloadFile2(request, filepath):
+    print(request.POST)
+    if "downloadFile" in request.POST:
+        file = File.objects.get(id=request.POST['downloadFile'])
+        print(file)
+        filename = file.Title
+        fl_path = file.file.path
+        print(fl_path)
+        wrapper = FileWrapper(open(fl_path))
+        content_type = mimetypes.guess_type(fl_path)[0]
+        response = HttpResponse(wrapper, content_type=content_type)
+        response['Content-Length'] = os.path.getsize(fl_path)
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
     else:
