@@ -103,20 +103,33 @@ def handler(request):
     if request.method == 'POST':
         channel_layer = get_channel_layer()
         type = request.POST['type']
+        validatedConv = None
+        try:
+            validatedConv = request.user.Conv_User.get(pk=request.session['actualConv'])
+        except:
+            pass
         if "sendMessage" == type:
+            if validatedConv is None:
+                return JsonResponse(data={"sendMessage": "false"})
             user = request.user
+            Edited = request.POST['Edited']
+            if Edited != "null":
+                newText = request.POST['text']
+                msg = getMsgFromConv(Edited, validatedConv)
+                editMessage(msg, newText)
+                async_to_sync(channel_layer.group_send)("convId"+str(validatedConv.id), {"type": "editMsg", "msgid": msg.id})
+                return JsonResponse(data={"editMsg": True})
             RequestFiles = request.FILES.getlist('files')
-            convid = request.session['actualConv']
             msg = createMsg(user, request.POST['text'])
             try:
                 msg.Reply = getMsg(request.POST['Reply'])
             except:
                 pass
             for fl in RequestFiles:
-                msg.files.add(createFile(fl, user, settings.MEDIA_ROOT+"\\files\\"+str(convid)+"\\"+str(user.id)+"\\", msg))
+                msg.files.add(createFile(fl, user, settings.MEDIA_ROOT+"\\files\\"+str(validatedConv.id)+"\\"+str(user.id)+"\\", msg))
             msg.save()
-            NewSendMsg(getConv(convid), msg)
-            async_to_sync(channel_layer.group_send)("convId"+str(convid), {"type": "sendMessage", "msgid": msg.id})
+            NewSendMsg(getConv_s(user, validatedConv.id), msg)
+            async_to_sync(channel_layer.group_send)("convId"+str(validatedConv.id), {"type": "sendMessage", "msgid": msg.id})
         elif "fetchMsg" == type:
             user = request.user
             first = int(request.POST['first'])
@@ -136,10 +149,10 @@ def handler(request):
                 try:
                     replyid = msg.Reply.id
                 except:
-                    pass
+                    replyid = -1
                 for fl in msg.files.all():
                     fileList.append(fl.file.url)
-                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "files": fileList, "date": msg.Date, "msgid": msg.id})
+                records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "Edited": msg.Edited, "files": fileList, "date": msg.Date, "msgid": msg.id})
             Dict["msgList"] = records
             return JsonResponse(data=Dict)
         elif "fetchConv" == type:
@@ -220,13 +233,14 @@ def handler(request):
             conv = createConv(request, user, request.POST['convname'])
             async_to_sync(channel_layer.group_send)("userId"+str(user.id), {"type": "createConv", "convname": conv.Name, "convid": conv.id})
         elif "addUserToConv" == type:
-            convid = request.session['actualConv']
+            if validatedConv is None:
+                return JsonResponse(data={"addUserToConv": "false"})
             userEmail = request.POST['email']
             try:
                 user = Users.objects.get(email=userEmail)
-                if addUserObjToConv(getConv(convid), user):
-                    async_to_sync(channel_layer.group_send)("convId"+str(convid), {"type": "add_usertoconv", "userid": user.id})
-                    async_to_sync(channel_layer.group_send)("userId"+str(user.id), {"type": "got_addedtoconv", "convid": convid})
+                if addUserObjToConv(getConv(validatedConv.id), user):
+                    async_to_sync(channel_layer.group_send)("convId"+str(validatedConv.id), {"type": "add_usertoconv", "userid": user.id})
+                    async_to_sync(channel_layer.group_send)("userId"+str(user.id), {"type": "got_addedtoconv", "convid": validatedConv.id})
             except:
                 pass
         elif "askUser" == type:
@@ -251,13 +265,13 @@ def handler(request):
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
         elif "deleteMsg" == type:
             msgid = request.POST['msgid']
-            conv = getConv(request.session['actualConv'])
-            msg = getMsgFromConv(msgid, conv)
-            async_to_sync(channel_layer.group_send)("convId"+str(conv.id), {'type': 'msgToDelete', "msgid": msgid})
+            msg = getMsgFromConv(msgid, validatedConv)
+            async_to_sync(channel_layer.group_send)("convId"+str(validatedConv.id), {'type': 'msgToDelete', "msgid": msgid})
             deleteMsg(msg)
         elif "askMsgById" == type:
-            conv = getConv(request.session['actualConv'])
-            msg = getMsgFromConv(request.POST['msgid'], conv)
+            if validatedConv is None:
+                return JsonResponse(data={"askMsgById": "false"})
+            msg = getMsgFromConv(request.POST['msgid'], validatedConv)
             fileList = []
             replyid = -1
             try:
@@ -267,8 +281,23 @@ def handler(request):
             for fl in msg.files.all():
                 fileList.append(fl.file.url)
             return JsonResponse({"userid": msg.Sender.id, "username": msg.Sender.username_value,
-                        "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "files": fileList,
+                        "convid": validatedConv.id, "edited": msg.Edited, "reply": replyid, "text": msg.Text, "files": fileList,
                         "date": msg.Date, "msgid": msg.id})
+        elif "getUser" == type:
+            user = request.user
+            return JsonResponse({"userid": user.id, "username": user.username_value, "PP": user.PP, "email": user.email})
+        elif "setPP" == type:
+            user = request.user
+            user.PP = request.FILES['files']
+        elif "setUsername" == type:
+            user = request.user
+            user.username_value = request.POST['Username']
+            user.save()
+        elif "setPassword" == type:
+            user = request.user
+            user.set_password(request.POST['Password'])
+            user.save()
+            login(request, user)
     return JsonResponse(data="EMPTY", safe=False)
 
 def file(request):

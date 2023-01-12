@@ -357,6 +357,12 @@ def getConv(conv_id):
     except:
         return -1
 
+def getConv_s(user, conv_id):
+    perf = PerformanceProfiler("getConv_s")
+    try:
+        return user.Conv_User.get(pk=conv_id)
+    except:
+        return -1
 def fetchAskedMsg(conv, begin=0,nb=10):
     perf = PerformanceProfiler("fetchAskedMsg")
     allMsg = conv.Messages.all().order_by('-id')
@@ -475,3 +481,9 @@ def getMsgFromConv(msgid, conv):
         return conv.Messages.get(pk=msgid)
     except:
         return -1
+
+
+def editMessage(msg, newText):
+    msg.Text = newText
+    msg.Edited = True
+    msg.save()

@@ -79,17 +79,19 @@ li {
     max-height: 100vh;
 }
 
-/*
-::-webkit-scrollbar-thumb {
-  background-color: rgba(32, 36, 42, 0.64);
-  border: 4px solid transparent;
-  border-radius: 8px;
-  background-clip: padding-box;
+.user-input{
+    width: 70%;
+    background: #2f3136;
+    color: #8e9297;
+    text-decoration: none;
+    border: none;
+    height: 1.5em;
+    border-radius: 0.5em;
 }
 
-::-webkit-scrollbar {
-  width: 15px;
-}*/
+.user-input {
+    margin: 0.5em;
+}
 
 ::-webkit-scrollbar {
     width: 0.5em;
@@ -109,7 +111,7 @@ li {
 
 #convList {
     overflow-y: auto;
-    max-height: 85vh;
+    max-height: 75vh;
 }
 
 p {
@@ -167,13 +169,6 @@ p {
     margin: 10px;
 }
 
-.aImg {
-    max-height: 30vh;
-    max-width: 20vw;
-    min-width: 1vw;
-    min-height: 1vh ;
-}
-
 #id_file {
     display: none;
 }
@@ -192,4 +187,111 @@ body{
 #createConvInput {
     background: #40444b;
     border-radius: 5px;
+}
+
+/* --CHAT-- */
+
+.message-container {
+  /* Style de base du conteneur de message */
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.message-container.has-files {
+  /* Style supplémentaire pour les messages qui ont des fichiers */
+}
+
+.message-container .message-header {
+  /* Style de l'en-tête du message (nom de l'utilisateur et horodatage) */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.message-container .message-header {
+  /* Style de l'en-tête du message (nom de l'utilisateur et horodatage) */
+  display: flex;
+justify-content: space-between;
+    margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.message-container .message-header .username {
+  /* Style du nom de l'utilisateur dans l'en-tête du message */
+  color: #dcddde;
+  margin-right: 8px;
+}
+
+.message-container .message-header .timestamp {
+  /* Style de l'horodatage dans l'en-tête du message */
+  color: #8e9297;
+  font-size: 12px;
+}
+
+.message-container .message-body {
+    /* Style du corps du message */
+    flex: 1;
+    margin-right: 8px;
+    font-size: 16px;
+    color : #dcddde;
+}
+
+.message-container .message-files {
+  /* Style de la liste des fichiers du message */
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.message-container .message-footer {
+    color: #8e9297;
+    font-size: 0.7em;
+    display: flex;
+    justify-content: space-between;
+}
+
+.message-container .message-files .file {
+    /* Style de chaque fichier dans la liste */
+  display: flex;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-container .message-files .file img {
+    /* Style du nom du fichier */
+    flex: 1;
+    font-size: 14px;
+    color: #36393f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 30vh;
+    max-width: 20vw;
+    min-width: 1vw;
+    min-height: 1vh;
+}
+
+
+.message-container .message-header {
+  /* Style de l'en-tête du message (nom de l'utilisateur et horodatage) */
+  font-size: 14px;
+  font-weight: bold;
+    width: 100%;
+}
+
+
+.message-container .message-header button {
+  /* Style de base des boutons */
+  appearance: none;
+  border: none;
+  outline: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #b9bbbe;
+  transition: color 0.2s ease;
+  margin-left: 8px;
 }

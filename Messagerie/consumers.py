@@ -50,3 +50,5 @@ class PracticeConsumer(AsyncJsonWebsocketConsumer):
     async def selectConv(self, event):
         await self.send(json.dumps(event))
 
+    async def editMsg(self, event):
+        await self.send(json.dumps(event))
