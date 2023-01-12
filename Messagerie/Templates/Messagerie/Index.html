@@ -39,7 +39,6 @@
         </div>
     </div>
     <label hidden id="csrf_token">{{ csrf_token }}</label>
-    {{ user.id|json_script:"user_id" }}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
     <script src="{% static 'Messagerie/index.js' %}">
     </script>
