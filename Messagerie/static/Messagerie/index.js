@@ -124,7 +124,7 @@ function JsonToConv(conv){
 }
 
 function genMsg(userid, username, convid, msgid, message, files, timestamp, reply, edited, toAppend){
-    if (reply !== -1){
+    if (reply){
         askMsgByIdReply(reply, msgid);
     }
     let bottom = false
@@ -304,8 +304,7 @@ function onClickConvButton(type, convid, userid = "-1"){
                 'X-CSRFToken': csrf_token,
             },
             success: function (response) {
-                ws.send(JSON.stringify(response));
-                document.getElementById("convName").innerHTML = response["convname"]
+                document.getElementById("convName").textContent = response["convname"]
                 //ws.send(JSON.stringify(response));
             }
         })
@@ -365,64 +364,15 @@ function prepareSendButton() {
     document.onkeyup = keyUpListener;
 }
 
-function keyDownListener(e){
-    console.log("I'm here ! e value:");
-    console.log(e);
-    if(e.key === "Enter" && !(shift_pressed)){
-        console.log("Aaaaand message should be sent");
+function keyDownListener(e) {
+    if (e.key === "Enter" && !(shift_pressed)) {
         sendMessage(false);
-    }
-    else{
-        if(e.key === "Shift"){
+    } else {
+        if (e.key === "Shift") {
             shift_pressed = true;
-
-document.getElementById("toSend").focus();
-document.getElementById("messageSubmit").onclick = function (e){
-    let messageTxt = document.querySelector("#toSend").textContent;
-    let messageFiles = document.querySelector("#id_file").files;
-    let fd = new FormData();
-    fd.append("type", "sendMessage")
-    fd.append("text", messageTxt);
-    fd.append("Reply", replyTo);
-    fd.append("Edited", msgToEdit);
-    replyTo = null;
-    if (msgToEdit !== null) {
-        document.getElementById("msgEditMode").remove();
-        let childList = document.getElementById("msgId"+msgToEdit).children;
-        let element = null;
-        for(let i = 0; i < childList.length; i++){
-            if (childList[i].classList.contains("message-body")){
-                element = childList[i].textContent;
-                break;
-            }
-        }
-        try {
-            if (element === document.getElementById("toSend").textContent) {
-                msgToEdit = null;
-                return;
-            }
-        }
-        catch{}
-        msgToEdit = null;
-    }
-    addFiles(fd, messageFiles);
-    $.ajax({
-        type: "POST",
-        url: addrIP+"handler",
-        processData: false,
-        contentType: false,
-        data: fd,
-        cache: false,
-        async: true,
-        headers : {
-            'X-CSRFToken' : csrf_token,
-        },
-        success: function (response){
-            //ws.send(JSON.stringify(response));
         }
     }
 }
-
 function keyUpListener(e){
     if(e.key === "Shift"){
         shift_pressed = false;
@@ -435,15 +385,14 @@ function sendMessageListener(buttonClicked){
     }
 }
 function sendMessage(buttonClicked){
-    console.log("inside sendMessage");
-    console.log(document.activeElement);
     if(document.activeElement === document.getElementById("toSend") || buttonClicked) {
-        let messageTxt = document.querySelector("#toSend").innerHTML;
+        let messageTxt = document.querySelector("#toSend").textContent;
         document.querySelector("#toSend").innerHTML = "";
         let messageFiles = document.querySelector("#id_file").files;
         let fd = new FormData();
         fd.append("type", "sendMessage")
         fd.append("text", messageTxt);
+        fd.append("Edited", msgToEdit);
         addFiles(fd, messageFiles);
         $.ajax({
             type: "POST",
@@ -457,7 +406,6 @@ function sendMessage(buttonClicked){
                 'X-CSRFToken': csrf_token,
             },
             success: function (response) {
-                ws.send(JSON.stringify(response));
             }
         })
     }
@@ -493,16 +441,16 @@ function genUser(username, userid) {
     li.className = "liUser";
     li.id = "userid"+userid;
     let label = li.appendChild(document.createElement('label'));
-    label.innerHTML = username;
+    label.textContent = username;
     let btnKick = li.appendChild(document.createElement('button'));
     btnKick.type = "submit";
     btnKick.value = userid;
-    btnKick.innerHTML = "Kick";
+    btnKick.textContent = "Kick";
     btnKick.onclick = onClickConvButton("deleteConv", -1, userid);
     let btnban = li.appendChild(document.createElement('button'));
     btnban.type = "submit";
     btnban.value = userid;
-    btnban.innerHTML = "Ban";
+    btnban.textContent = "Ban";
     let btnWhisp = li.appendChild(document.createElement('button'));
     btnWhisp.type = "submit";
     btnWhisp.value = userid;
@@ -831,54 +779,8 @@ function buildUserProfile(){
     info.onclick = userOnClick;
 }
 
-ws.onmessage = function (msg){
-    msg = JSON.parse(msg.data);
-    if (msg.type === "sendMessage"){
-        JsonToMsg(msg, true);
-
-    }else if (msg.type === "selectConv"){
-        if (!messageMode){
-            loadFiles();
-        }
-        else {
-            console.log(messageMode);
-            document.getElementById("msgUl").innerHTML = "";
-            document.getElementById("convName").innerHTML = msg.convname;
-            document.getElementById("userList").innerHTML = "";
-            askUser(msg.convid);
-            fetchMsg(0);
-        }
-        askMsgById(msg.msgid);
-    }else if (msg.type === "selectConv"){
-        document.getElementById("msgUl").innerHTML = "";
-        document.getElementById("userList").innerHTML = "";
-        document.getElementById("convName").textContent = msg.convname;
-        askUser(msg.convid);
-        fetchMsg(0);
-    }
-    else if (msg.type === "userToKick"){
-        document.getElementById("userList").removeChild(document.getElementById("userid"+msg.userid));
-    }else if (msg.type === "kickFromConv"){
-        document.getElementById("convList").removeChild(document.getElementById("idConv"+msg.convid));
-        selectConv("Begin");
-    }
-    else if (msg.type === "createConv"){
-        selectConv(msg.convid);
-        JsonToConv(msg);
-    }else if (msg.type === "add_usertoconv"){
-        askUserById(msg.userid);
-    }else if (msg.type === "got_addedtoconv") {
-        askConvById(msg.convid);
-    }else if (msg.type === "msgToDelete"){
-        document.getElementById("msgUl").removeChild(document.getElementById("msgId"+msg.msgid));
-    }else if (msg.type === "editMsg"){
-        askMsgByIdEdit(msg.msgid);
-    }
-}
-
 function loadMessages(){
     let displayMod = document.getElementById("displayMod");
-    console.log("Inside loadMessages")
     let toFiles = document.getElementById("FileMessage");
     toFiles.onclick = OnClickLoadFiles();
     if(messageMode === false){
@@ -909,7 +811,7 @@ function createMessageInput(parent){
         let msgSender_right = createDiv("msgSender-right",null, msgSender_container);
         let fileform_label = document.createElement("label");
         fileform_label.htmlFor = "id_file";
-        fileform_label.innerHTML = "File:";
+        fileform_label.textContent = "File:";
         let fileform_file = document.createElement("input");
         fileform_file.id = "id_file";
         fileform_file.type = "file";
@@ -951,7 +853,6 @@ function loadFiles(reload_page = true){
     if(messageMode){
         messageMode = false;
         let container = document.getElementsByClassName("sub-container-right")[0];
-        console.log(container.children);
         let containerAddDir = createDiv("addDir");
         container.insertBefore(containerAddDir, container.children[3]);
         let addDirField = createDiv("addDirField", null, containerAddDir);
@@ -964,7 +865,6 @@ function loadFiles(reload_page = true){
     let toMessages = document.getElementById("FileMessage");
     toMessages.onclick = OnClickLoadMessages();
     fetchFiles();
-    console.log("end loadFiles")
 }
 
 function OnClickAddDir(){
@@ -993,13 +893,11 @@ function OnClickAddDir(){
 
 function OnClickEnterDir(dirId){
     return function(){
-        console.log("Inside OnClickEnterDir")
         enterDir(dirId);
     }
 }
 
 function enterDir(dirId){
-    console.log("Inside enterDir")
     let displayMod = document.getElementById("displayMod");
     displayMod.innerHTML = "";
 
@@ -1009,7 +907,6 @@ function enterDir(dirId){
     let fd = new FormData();
     fd.append("type", 'enterDir');
     fd.append("dirId", dirId);
-    console.log("Send request...")
     $.ajax({
         type: "POST",
         url: addrIP+"handler",
@@ -1035,9 +932,7 @@ function OnClickBackDir(){
 
 function backDir(){
     let fd = new FormData();
-    console.log("Inside BackDir");
     fd.append("type", 'backDir');
-    console.log("Send request...")
     $.ajax({
         type: "POST",
         url: addrIP+"handler",
@@ -1067,7 +962,6 @@ function OnClickLoadMessages(){
 }
 
 function genFile(title, id, link){
-    console.log("Inside genFile");                        //To secure later with less datas
     let parent = document.getElementById("ulDocuments");
     let listIl = parent.appendChild(document.createElement("li"));
     listIl.draggable = true;
@@ -1089,9 +983,7 @@ function genFile(title, id, link){
 
 function genDir(title, id, parent_id, conv_id){
     let parent = document.getElementById("ulDocuments");
-    console.log("Generating directory " + title + " " + id);
     if(parent == null){
-        console.log("Generating ulDocuments because is null");
         let displayMod = document.getElementById("displayMod");
         parent = document.createElement("ul");
         parent.id = "ulDocuments";
@@ -1118,7 +1010,6 @@ function genDir(title, id, parent_id, conv_id){
 
 function dragStartListener(e){
     e.dataTransfer.effectAllowed="move";
-    console.log("dragStartListener");
     let data = e.target.dataset.valueOf();
     data = JSON.stringify(data);
     e.dataTransfer.setData("text/plain", data);
@@ -1133,8 +1024,6 @@ function dragEnterDirListener(e){
 }
 
 function dropDirListener(e){
-    console.log('----------------------');
-    console.log(e);
     e.preventDefault();
     let fd = new FormData();
     let target = null;
@@ -1144,21 +1033,14 @@ function dropDirListener(e){
     else{
         target = e.target;
     }
-    console.log(target);
     let receiverDir = target.dataset.valueOf()["id"];
-    console.log("receiverDir = " + receiverDir);
     let value = JSON.parse(e.dataTransfer.getData("text/plain"));
-    console.log(value);
     let type = value["type"];
-    console.log(type)
     let id = value["id"];
-    console.log(id);
-    console.log("Inside dropDirListener");
     fd.append("type", 'dropInDir');
     fd.append("mvItemId", id);
     fd.append("receiverDir", receiverDir)
     fd.append("itemType", type)
-    console.log("Send request...")
     $.ajax({
         type: "POST",
         url: addrIP+"handler",
@@ -1194,7 +1076,6 @@ function createButton(type, name, value, innerText=null, id=null, classe=null){
 
 
 function fetchFiles(){
-    console.log("Inside fetchfiles")
     let fd = new FormData();
     fd.append("type", 'fetchFiles');
     $.ajax({
@@ -1210,11 +1091,6 @@ function fetchFiles(){
         },
         success: function (response){
             try {
-                console.log("Inside try of fetchFiles");
-                console.log("Number of subdirs:");
-                console.log(response["all_subdirs"].length)
-                console.log(response["all_subdirs"])
-
                 let displayMod = document.getElementById("displayMod");
                 displayMod.innerHTML = "";
                 if(response["parent"] === 0){
@@ -1237,13 +1113,9 @@ function fetchFiles(){
                     displayMod.appendChild(displayUl);
                 }
                 for(let i = 0; i < response["all_subdirs"].length; i++){
-                    console.log("Subdir id : " + i)
                     JsonToDir(response['all_subdirs'][i]);
                 }
-                console.log("Number of file:");
-                console.log(response["all_files"].length);
                 for(let i = 0; i < response["all_files"].length; i++){
-                    console.log("In for");
                     JsonToFile(response["all_files"][i]);
                 }
             }
@@ -1253,7 +1125,6 @@ function fetchFiles(){
 }
 
 function JsonToFile(file){
-    console.log("Inside JsonToFile");
     let path = file.path;
     let id = file.id;
     let title = file.title;
@@ -1261,7 +1132,6 @@ function JsonToFile(file){
     let date = file.dateAdded;
     let directory_id = file.directory_id;
     let message_id = file.Message_id;
-    console.log(title);
     genFile(title, id, path);
 }
 
@@ -1326,6 +1196,43 @@ function download(url){
     }
 }
 
+ws.onmessage = function (msg){
+    msg = JSON.parse(msg.data);
+    if (msg.type === "sendMessage"){
+        askMsgById(msg.msgid);
+    }else if (msg.type === "selectConv"){
+        if (!messageMode){
+            loadFiles();
+        }
+        else {
+            document.getElementById("msgUl").innerHTML = "";
+            document.getElementById("convName").innerHTML = msg.convname;
+            document.getElementById("userList").innerHTML = "";
+            askUser(msg.convid);
+            fetchMsg(0);
+        }
+    }
+    else if (msg.type === "userToKick"){
+        document.getElementById("userList").removeChild(document.getElementById("userid"+msg.userid));
+    }else if (msg.type === "kickFromConv"){
+        document.getElementById("convList").removeChild(document.getElementById("idConv"+msg.convid));
+        selectConv("Begin");
+    }
+    else if (msg.type === "createConv"){
+        selectConv(msg.convid);
+        JsonToConv(msg);
+    }else if (msg.type === "add_usertoconv"){
+        askUserById(msg.userid);
+    }else if (msg.type === "got_addedtoconv") {
+        askConvById(msg.convid);
+    }else if (msg.type === "msgToDelete"){
+        document.getElementById("msgUl").removeChild(document.getElementById("msgId"+msg.msgid));
+    }else if (msg.type === "editMsg"){
+        askMsgByIdEdit(msg.msgid);
+    }
+}
+
 createMessageListEnvironment(document.getElementById("displayMod"));
 createMessageInput(document.getElementById("displayMod"));
 prepareSendButton();
+

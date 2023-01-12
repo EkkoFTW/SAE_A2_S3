@@ -132,7 +132,7 @@ def handler(request):
             try:
                 msg.Reply = getMsg(request.POST['Reply'])
             except:
-                pass
+                msg.Reply = None
             for fl in RequestFiles:
                 msg.files.add(createFile(fl, user, settings.MEDIA_ROOT+"\\files\\"+str(validatedConv.id)+"\\"+str(user.id)+"\\", msg))
             msg.save()
@@ -151,13 +151,13 @@ def handler(request):
             msgList = fetchAskedMsg(conv, first)
             Dict = {}
             records = []
-            replyid = -1
+            replyid = None
             for msg in msgList:
                 fileList = []
                 try:
                     replyid = msg.Reply.id
                 except:
-                    replyid = -1
+                    replyid = None
                 for fl in msg.files.all():
                     fileList.append(fl.file.url)
                 records.append({"userid": msg.Sender.id, "username": msg.Sender.username_value, "convid": request.session['actualConv'], "reply": replyid, "text": msg.Text, "Edited": msg.Edited, "files": fileList, "date": msg.Date, "msgid": msg.id})
@@ -377,7 +377,7 @@ def handler(request):
                 return JsonResponse(data={"askMsgById": "false"})
             msg = getMsgFromConv(request.POST['msgid'], validatedConv)
             fileList = []
-            replyid = -1
+            replyid = None
             try:
                 replyid = msg.Reply.id
             except:
@@ -492,41 +492,6 @@ def file(request):
 
     return HttpResponse(template.render(context, request))
 
-def download_file(request, filepath):
-    print(request.POST)
-    if "downloadFile" in request.POST:
-        file = File.objects.get(id=request.POST['downloadFile'])
-        filename = file.Title
-        fl_path = file.file.path
-        print(fl_path)
-        fl = open(fl_path, 'rb')
-        mime_type, _ = mimetypes.guess_type(fl_path)
-        response = FileResponse(fl)
-        response['Content-Disposition'] = "attachment; filename=%s" % filename
-        return response
-    else:
-        return index(request)
-
-
-def downloadFile2(request, filepath):
-    print(request.POST)
-    if "downloadFile" in request.POST:
-        file = File.objects.get(id=request.POST['downloadFile'])
-        print(file)
-        filename = file.Title
-        fl_path = file.file.path
-        print(fl_path)
-        wrapper = FileWrapper(open(fl_path))
-        content_type = mimetypes.guess_type(fl_path)[0]
-        print(content_type)
-        print(fl_path)
-        response = HttpResponse(wrapper, content_type=content_type)
-        response['Content-Length'] = os.path.getsize(fl_path)
-        response['Content-Disposition'] = "attachment; filename=%s" % filename
-        return response
-    else:
-        return index(request)
-
 def download(request, filepath):
     if "downloadFile" in request.POST:
         file = File.objects.get(id=request.POST['downloadFile'])
@@ -537,3 +502,5 @@ def download(request, filepath):
         extension = pathlib.Path(filename).suffix
         filename_with_extension = "{0}{1}".format(filename, extension)
         return FileResponse(file, as_attachment=True)
+    else:
+        return redirect('index')
