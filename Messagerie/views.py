@@ -1,9 +1,17 @@
+import pathlib
+
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.http import FileResponse
 import mimetypes
 from .Source import *
 from django.shortcuts import redirect
+from wsgiref.util import FileWrapper
+
+#latest_message_list, conv_list, conv, list_user
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
@@ -263,6 +271,102 @@ def handler(request):
         elif "askConvById" == type:
             conv = getConv(request.POST['convid'])
             return JsonResponse(data={"convid": conv.id, "convname": conv.Name})
+        elif "fetchFiles" == type:
+            found = False
+            try:
+                current_dir = request.session["current_dir"]
+                found = True
+            except:
+                current_dir = Directory.objects.filter(Conv_User=request.session["actualConv"])
+
+                for dir in current_dir:
+                    if dir.parent is None:
+                        current_dir = dir
+                        found = True
+                        break
+            Dict = {}
+            dictFiles = []
+            dictDirs = []
+            if found:
+                all_files, all_subdirs = get_all_files(request.session["actualConv"], current_dir, True)
+                print(all_files)
+                print(all_subdirs)
+                for i in range(len(all_files)):
+                    print(all_files[i])
+                    print(all_files[i].Title)
+                    dictFiles.append({"path":all_files[i].file.url, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
+                for i in range(len(all_subdirs)):
+                    print(all_subdirs[i])
+                    dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
+                actualDir = getDir(current_dir, request.session["actualConv"])
+                if actualDir.parent is None:
+                    Dict["parent"] = 0
+                else:
+                    Dict["parent"] = actualDir.parent.id
+            Dict["all_files"] = dictFiles
+            Dict["all_subdirs"] = dictDirs
+            return JsonResponse(data=Dict)
+        elif "enterDir" == type:
+            enterDir(request, request.POST["dirId"], request.session["actualConv"])
+            return JsonResponse(data={})
+        elif "backDir" == type:
+            print("Backdir")
+            print("Current dir :")
+            print(request.session["current_dir"])
+            parent = getDir(request.session["current_dir"], request.session["actualConv"]).parent
+            if (parent is not None):
+                request.session["current_dir"] = parent.id
+                print("Current dir set successfully !")
+                print("New current dir = ")
+                print(request.session["current_dir"])
+                if parent.parent is None:
+                    return JsonResponse(data={})
+                else:
+                    return JsonResponse(data={})
+            else:
+                print("Security beach avoided. Pay attention to potential attacks through the file system via the website function backDir().")
+                print(request.session["current_dir"])
+                return JsonResponse(data="Either a back() function error or someone tried to access a parent file through unauthorised commands. Error raised to website administration.", safe=False)
+        elif type == "dropInDir":
+            print("--------------")
+            print(request.POST["itemType"])
+            print(request.POST["receiverDir"])
+            print(request.POST["mvItemId"])
+            if request.POST["itemType"] == "Dir":
+                mvDir = request.POST["mvItemId"]
+                receiverDir = request.POST["receiverDir"]
+                conv = request.session["actualConv"]
+                mvDir = getDir(mvDir, conv)
+                receiverDir = getDir(receiverDir, conv)
+                success = move_Dir(mvDir, receiverDir)
+                return JsonResponse(data={"success": success})
+            elif request.POST["itemType"] == "File":
+                conv = request.session["actualConv"]
+                receiverDir = getDir(request.POST["receiverDir"], conv)
+                file = getFile(request.POST["mvItemId"], conv)
+                return JsonResponse(data={"success": move_File(file, receiverDir)})
+            else:
+                return JsonResponse(data={"success": False})
+        elif type == "addDir":
+            dirName = request.POST["name"]
+            conv = request.session["actualConv"]
+            parent = getDir(request.session["current_dir"], conv)
+            print(conv)
+            conv = getConv(conv)
+            createDir(parent.path, dirName, conv, parent, True)
+        elif type == "deleteDir":
+            dirId = request.POST["id"]
+            deleteDir(dirId, request.session["actualConv"])
+        elif type == "deleteFile":
+            fileId = request.POST["id"]
+            print("Delete file id = " + str(fileId))
+            deleteFile(fileId, request.session["actualConv"])
+        elif type == "getFileName":
+            fileId = request.POST["id"]
+            try:
+                return JsonResponse(data={"title" : File.objects.get(id=fileId).Title})
+            except:
+                pass
         elif "deleteMsg" == type:
             msgid = request.POST['msgid']
             msg = getMsgFromConv(msgid, validatedConv)
@@ -374,7 +478,8 @@ def file(request):
     all_files = []
     list_subdirs = []
     try:
-        all_files, list_subdirs = get_all_files(conv, current_dir)
+        all_files, list_subdirs = get_all_files(conv,
+                                                )
         previous_dir = None
         if list_subdirs is not None and len(list_subdirs) == 0 and current_dir is not None:
             previous_dir = getDir(current_dir, conv)
@@ -388,10 +493,12 @@ def file(request):
     return HttpResponse(template.render(context, request))
 
 def download_file(request, filepath):
+    print(request.POST)
     if "downloadFile" in request.POST:
         file = File.objects.get(id=request.POST['downloadFile'])
         filename = file.Title
         fl_path = file.file.path
+        print(fl_path)
         fl = open(fl_path, 'rb')
         mime_type, _ = mimetypes.guess_type(fl_path)
         response = FileResponse(fl)
@@ -399,3 +506,34 @@ def download_file(request, filepath):
         return response
     else:
         return index(request)
+
+
+def downloadFile2(request, filepath):
+    print(request.POST)
+    if "downloadFile" in request.POST:
+        file = File.objects.get(id=request.POST['downloadFile'])
+        print(file)
+        filename = file.Title
+        fl_path = file.file.path
+        print(fl_path)
+        wrapper = FileWrapper(open(fl_path))
+        content_type = mimetypes.guess_type(fl_path)[0]
+        print(content_type)
+        print(fl_path)
+        response = HttpResponse(wrapper, content_type=content_type)
+        response['Content-Length'] = os.path.getsize(fl_path)
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
+    else:
+        return index(request)
+
+def download(request, filepath):
+    if "downloadFile" in request.POST:
+        file = File.objects.get(id=request.POST['downloadFile'])
+        print(file)
+        filename = file.Title
+        fl_path = file.file.path
+        print(fl_path)
+        extension = pathlib.Path(filename).suffix
+        filename_with_extension = "{0}{1}".format(filename, extension)
+        return FileResponse(file, as_attachment=True)

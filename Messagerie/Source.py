@@ -1,4 +1,5 @@
 import os.path
+import re
 
 import Messagerie.models
 from django.contrib.auth import *
@@ -74,8 +75,6 @@ def handle_form_response(request, user, conv, firstConv):
             return redirect('file')
         elif 'deleteFile' in request.POST:
             return deleteFile(request.POST['deleteFile'])
-        elif 'addDir' in request.POST:
-            return createDirConv(request, user, conv)
         elif 'deleteDir' in request.POST:
             return deleteDir(request.POST['deleteDir'], conv)
         elif 'enterDir' in request.POST:
@@ -98,10 +97,12 @@ def get_all_QS_files(conv):
             QSfiles.append(message.files.all())
     return QSfiles
 
-def get_all_files(conv, directory):
+def get_all_files(conv, directory, ws = False):
     if conv is not None:
         subdirs = []
         if directory is None or directory == "":
+            if(ws):
+                conv = Conv_User.objects.get(id=conv)
             directory = Directory.objects.get(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id)+"\\"))
         else:
             directory = getDir(directory, conv)
@@ -129,12 +130,14 @@ def createConv(request, user, convName):
     user.save()
     newConv.Users.add(user)
     newConv.save()
-    newDir = createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\", newConv.id, newConv, None)
+    newDir = createDir(settings.MEDIA_ROOT + "\\files\\", newConv.id, newConv, None, True)
     newConv.dir = newDir
     newConv.save()
     request.session['actualConv'] = newConv.id
 
-    createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\", user.id, newConv, newDir)
+    createDir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\", user.id, newConv, newDir, True)
+    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\")
+    #os.mkdir(settings.MEDIA_ROOT + "\\files\\" + str(newConv.id) + "\\" + str(user.id) + "\\")
     return newConv
 
 def kick(conv, user):
@@ -193,7 +196,7 @@ def sendMsg(user, request):
                 dir = dir[0]
             else:
                 try:
-                    dir = createDir(dir_path, user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0])
+                    dir = createDir(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\", user.id, conv, Directory.objects.filter(path=(settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"))[0], True)
                 except:
                     print("Dir conv does not exist")
             i = 0
@@ -384,49 +387,71 @@ def getLatestConv(user):
         conv = -1
     return conv
     
-def deleteFile(id):
+def deleteFile(id, conv):
     try:
         file = File.objects.get(id=id)
         if file is None:
             return -1
         else:
-            file.Message.files.remove(file)
-            if(not file.Message.files.all().exists() and file.Message.Text == ""):
-                file.Message.delete()
-            file.delete()
+            if (file.directory.Conv_User.id == conv):
+                file.Message.files.remove(file)
+                if(not file.Message.files.all().exists() and file.Message.Text == ""):
+                    file.Message.delete()
+                file.delete()
+            else:
+                print("File not in conv")
     except:
         print("File does not exist or isn't reached")
 
+def getFile(file, conv):
+    file = File.objects.get(id=file)
+    print("Test conv")
+    print(file.directory.Conv_User.id)
+    print(conv)
+    if(file.directory.Conv_User.id == conv):
+        print("return true")
+        return file
+    else:
+        print("Return false")
+        return None
 
-def move_File(file, path):
-    os.rename(file.file.path, path)
-    file.file.path = path
+def move_File(file, parent):
+    print("Enter move_file ------------------------------")
+    print(file.file.path)
+    print(parent.path + file.Title)
+    os.rename(file.file.path, parent.path + file.Title)
+    file.directory = parent
+    file.file.name = parent.path + file.Title
     file.save()
+    return True
 
-def createDirConv(request, user, conv):
-    parent = None
-    given_name = ""
-    if "current_dir" in request.session:
-        parent = getDir(request.session["current_dir"], conv)
-        dirPath = parent.path
+def move_Dir(dir, parent):
+    path = parent.path + str(dir.id) + "\\"
+    print(path)
+    if os.path.exists(path):
+        return False
     else:
-        dirPath = settings.MEDIA_ROOT + "\\files\\" + str(conv.id) + "\\"
-    if 'File_Path' in request.session:
-        dirPath += request.session['File_Path']
-    if 'directoryName' in request.POST and request.POST['directoryName'] != "":
-        given_name = request.POST['directoryName']
-        given_name.replace("/", "\\")
-        given_name = get_valid_filename(given_name)
-        dirPath += given_name + "\\"
-    else:
-        given_name = 'New file'
-        number = Directory.objects.all().count()
-        if (number > 0):
-            given_name += "(" + str(number) + ")"
-        dirPath += given_name
-    createDir(dirPath, given_name, conv, parent)
+        dir.parent = parent
+        os.rename(dir.path, path)
+        dir.path = path
+        dir.save()
+        return True
 
-def createDir(path, title, conv, parent):
+def is_dir_name_safe(filename):
+    regex = r"[\\\/<>:\"|\?*]+?|^CON$|^CON\.|^PRN$|^PRN$|^AUX$|^AUX\.|^NUL$|^NUL\.|^COM[0-9]$|COM[0-9]\.|^LPT[0-9]$|LPT[0-9]\."
+    matches = re.finditer(regex, str(filename), re.MULTILINE)
+    for matchNum, match in enumerate(matches, start=1):
+        return False
+    return True
+
+
+def createDir(path, title, conv, parent, useTitleInPath = False):
+    print("--------------------------------------------")
+    print(path)
+    if (useTitleInPath):
+        if(is_dir_name_safe(title)):
+            path = path + str(title) + "\\"
+            print("Path creatable")
     if not os.path.isdir(path):
         dir = Directory()
         dir.path = path
@@ -453,7 +478,7 @@ def deleteDir(id, conv):
     if conv is not None:
         dirs = Directory.objects.filter(Conv_User=conv)
         for dir in dirs:
-            if str(dir.id) == id:
+            if str(dir.id) == str(id):
                 dir.delete()
 
 
@@ -469,6 +494,23 @@ def getDir(id, conv):
                 return dir
         return Directory.objects.filter(Conv_User=conv).order_by("id")[0]
     return None
+
+
+def renameFile(fileId, convId, title):
+    file = File.objects.get(id=fileId)
+    if(file.directory.Conv_User.id == convId and is_dir_name_safe(title)):
+        file.Title = title
+        os.rename(file.path, file.directory.path + file.Title)
+    else:
+        print("Filename invalid or File not in Directory")
+
+def renameDir(dirId, convId, title):
+    dir = Directory.objects.get(id=dirId)
+    if(dir.Conv_User.id == convId and is_dir_name_safe(title)):
+        dir.title = title
+        os.rename(dir.path, dir.parent.path + title + "\\")
+    else:
+        print("DirectoryName invalid or File not in Directory")
 
 def getMsg(msgid):
     perf = PerformanceProfiler("getMsg")

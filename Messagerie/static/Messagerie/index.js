@@ -2,6 +2,8 @@ const csrf_token = document.querySelector("#csrf_token").innerHTML;
 const addrIP = "http://"+ location.host+"/Messagerie/";
 let ws = new WebSocket("ws://" + location.host +"/ws/");
 
+let messageMode = true;
+let shift_pressed = false;
 let replyTo = null;
 let msgToEdit = null;
 let userProfile = false;
@@ -9,13 +11,13 @@ let userProfile = false;
 ws.onopen = function (e){
     fetchConvList();
     selectConv("Begin");
+    let toFiles = document.getElementById("FileMessage");
+    toFiles.onclick = OnClickLoadFiles();
 }
 
 ws.onclose = function (e) {
     console.log("disconnected");
 }
-
-let chatbox = document.getElementById("msgList");
 
 function addFiles(fd, messageFiles){
     for (let i = 0; i < messageFiles.length; i++){
@@ -93,6 +95,7 @@ function fetchMsg(first= 0) {
                 if (first !== 0) {
                     oldLatest.scrollIntoView();
                 }else{
+                    let chatbox = document.getElementById("msgList");
                     chatbox.scrollTop = chatbox.scrollHeight;
                 }
             }
@@ -125,6 +128,7 @@ function genMsg(userid, username, convid, msgid, message, files, timestamp, repl
         askMsgByIdReply(reply, msgid);
     }
     let bottom = false
+    let chatbox = document.getElementById("msgList");
     if (chatbox.scrollHeight-chatbox.scrollTop < 700){
         bottom = true
     }
@@ -217,6 +221,7 @@ function genMsg(userid, username, convid, msgid, message, files, timestamp, repl
     btnReply.textContent = "Reply";
     btnReply.onclick = onClickReplyButton(msgid);
     if (toAppend){
+        let chatbox = document.getElementById("msgList");
         chatbox.scrollTop = chatbox.scrollHeight;
     }
 }
@@ -299,6 +304,8 @@ function onClickConvButton(type, convid, userid = "-1"){
                 'X-CSRFToken': csrf_token,
             },
             success: function (response) {
+                ws.send(JSON.stringify(response));
+                document.getElementById("convName").innerHTML = response["convname"]
                 //ws.send(JSON.stringify(response));
             }
         })
@@ -350,6 +357,25 @@ document.getElementById("createConvButton").onclick = function (){
     })
 }
 
+function prepareSendButton() {
+    document.getElementById("toSend").focus();
+    let sendButton = document.getElementById("messageSubmit");
+    sendButton.onclick = sendMessageListener(true);
+    document.onkeydown = keyDownListener;
+    document.onkeyup = keyUpListener;
+}
+
+function keyDownListener(e){
+    console.log("I'm here ! e value:");
+    console.log(e);
+    if(e.key === "Enter" && !(shift_pressed)){
+        console.log("Aaaaand message should be sent");
+        sendMessage(false);
+    }
+    else{
+        if(e.key === "Shift"){
+            shift_pressed = true;
+
 document.getElementById("toSend").focus();
 document.getElementById("messageSubmit").onclick = function (e){
     let messageTxt = document.querySelector("#toSend").textContent;
@@ -394,7 +420,47 @@ document.getElementById("messageSubmit").onclick = function (e){
         success: function (response){
             //ws.send(JSON.stringify(response));
         }
-    })
+    }
+}
+
+function keyUpListener(e){
+    if(e.key === "Shift"){
+        shift_pressed = false;
+    }
+}
+
+function sendMessageListener(buttonClicked){
+    return function(){
+        sendMessage(buttonClicked);
+    }
+}
+function sendMessage(buttonClicked){
+    console.log("inside sendMessage");
+    console.log(document.activeElement);
+    if(document.activeElement === document.getElementById("toSend") || buttonClicked) {
+        let messageTxt = document.querySelector("#toSend").innerHTML;
+        document.querySelector("#toSend").innerHTML = "";
+        let messageFiles = document.querySelector("#id_file").files;
+        let fd = new FormData();
+        fd.append("type", "sendMessage")
+        fd.append("text", messageTxt);
+        addFiles(fd, messageFiles);
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                ws.send(JSON.stringify(response));
+            }
+        })
+    }
 }
 
 document.getElementById("addToConv").onclick = function (){
@@ -516,9 +582,12 @@ function askConvById(convid){
     })
 }
 
-chatbox.onscroll = function (){
-    if (chatbox.scrollTop === 0){
-        fetchMsg(document.getElementById("msgUl").children.length);
+function prepareChatBox() {
+    let chatbox = document.getElementById("msgList");
+    chatbox.onscroll = function () {
+        if (chatbox.scrollTop === 0) {
+            fetchMsg(document.getElementById("msgUl").children.length);
+        }
     }
 }
 
@@ -765,6 +834,20 @@ function buildUserProfile(){
 ws.onmessage = function (msg){
     msg = JSON.parse(msg.data);
     if (msg.type === "sendMessage"){
+        JsonToMsg(msg, true);
+
+    }else if (msg.type === "selectConv"){
+        if (!messageMode){
+            loadFiles();
+        }
+        else {
+            console.log(messageMode);
+            document.getElementById("msgUl").innerHTML = "";
+            document.getElementById("convName").innerHTML = msg.convname;
+            document.getElementById("userList").innerHTML = "";
+            askUser(msg.convid);
+            fetchMsg(0);
+        }
         askMsgById(msg.msgid);
     }else if (msg.type === "selectConv"){
         document.getElementById("msgUl").innerHTML = "";
@@ -784,7 +867,7 @@ ws.onmessage = function (msg){
         JsonToConv(msg);
     }else if (msg.type === "add_usertoconv"){
         askUserById(msg.userid);
-    }else if (msg.type === "got_addedtoconv"){
+    }else if (msg.type === "got_addedtoconv") {
         askConvById(msg.convid);
     }else if (msg.type === "msgToDelete"){
         document.getElementById("msgUl").removeChild(document.getElementById("msgId"+msg.msgid));
@@ -793,4 +876,456 @@ ws.onmessage = function (msg){
     }
 }
 
+function loadMessages(){
+    let displayMod = document.getElementById("displayMod");
+    console.log("Inside loadMessages")
+    let toFiles = document.getElementById("FileMessage");
+    toFiles.onclick = OnClickLoadFiles();
+    if(messageMode === false){
+        messageMode = true;
+        displayMod.innerHTML = "";
+        document.getElementById("addDir").remove();
+        createMessageListEnvironment(displayMod);
+        createMessageInput(displayMod);
+        prepareSendButton();
+    }
 
+    selectConv("Begin");
+}
+function createMessageListEnvironment(parent){
+    let msgList = createDiv("msgList",null,parent);
+    let ulList = document.createElement("ul");
+    ulList.id = "msgUl";
+    msgList.appendChild(ulList);
+    prepareChatBox();
+}
+function createMessageInput(parent){
+        let sub_container_main_bottom = document.createElement("div");
+        sub_container_main_bottom.id = "sub-container-main-bottom";
+        let msgSender_container = document.createElement("div");
+        msgSender_container.id = "msgSender-container";
+        let msgSender_left = createDiv("msgSender-left",null, msgSender_container);
+        let msgSender_main = createDiv("msgSender-main",null, msgSender_container);
+        let msgSender_right = createDiv("msgSender-right",null, msgSender_container);
+        let fileform_label = document.createElement("label");
+        fileform_label.htmlFor = "id_file";
+        fileform_label.innerHTML = "File:";
+        let fileform_file = document.createElement("input");
+        fileform_file.id = "id_file";
+        fileform_file.type = "file";
+        fileform_file.name = "file";
+        fileform_file.multiple = "";
+        let fileform_text = createDiv("toSend");
+        fileform_text.name = "text";
+        fileform_text.contentEditable = "true";
+        let sendButton = createButton("submit", "sendMessage", null,"Send", "messageSubmit");
+        parent.appendChild(sub_container_main_bottom);
+        sub_container_main_bottom.appendChild(msgSender_container);
+        sub_container_main_bottom.appendChild(sendButton);
+        msgSender_left.appendChild(fileform_label);
+        msgSender_left.appendChild(fileform_file);
+        msgSender_main.appendChild(fileform_text);
+}
+
+function createDiv(id = null, classe = null, parent = null){
+    let div = document.createElement("div");
+    if(id != null){
+        div.id = id;
+    }
+    if(classe != null){
+        div.className = classe;
+    }
+    if(parent != null) {
+        parent.appendChild(div);
+    }
+    return div;
+}
+
+function OnClickLoadFiles(){
+    return function() {
+        loadFiles();
+    }
+}
+
+function loadFiles(reload_page = true){
+    if(messageMode){
+        messageMode = false;
+        let container = document.getElementsByClassName("sub-container-right")[0];
+        console.log(container.children);
+        let containerAddDir = createDiv("addDir");
+        container.insertBefore(containerAddDir, container.children[3]);
+        let addDirField = createDiv("addDirField", null, containerAddDir);
+        addDirField.contentEditable = "true";
+        let addDirButton = createButton("submit", "addDirButton", null, "Ajouter", "addDirButton")
+        addDirButton.onclick = OnClickAddDir;
+        containerAddDir.appendChild(addDirButton);
+
+    }
+    let toMessages = document.getElementById("FileMessage");
+    toMessages.onclick = OnClickLoadMessages();
+    fetchFiles();
+    console.log("end loadFiles")
+}
+
+function OnClickAddDir(){
+    let field = document.getElementById("addDirField");
+    let text = field.innerHTML;
+    let fd = new FormData();
+    fd.append("type", "addDir");
+    fd.append("name", text);
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response) {
+            field.innerHTML = "";
+            loadFiles();
+        }
+    })
+}
+
+function OnClickEnterDir(dirId){
+    return function(){
+        console.log("Inside OnClickEnterDir")
+        enterDir(dirId);
+    }
+}
+
+function enterDir(dirId){
+    console.log("Inside enterDir")
+    let displayMod = document.getElementById("displayMod");
+    displayMod.innerHTML = "";
+
+    let displayUl = document.createElement("ul");
+    displayUl.id = "ulDocuments";
+
+    let fd = new FormData();
+    fd.append("type", 'enterDir');
+    fd.append("dirId", dirId);
+    console.log("Send request...")
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            loadFiles(false);
+        }
+    })
+}
+
+function OnClickBackDir(){
+    return function(){
+        backDir();
+    }
+}
+
+function backDir(){
+    let fd = new FormData();
+    console.log("Inside BackDir");
+    fd.append("type", 'backDir');
+    console.log("Send request...")
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            if(response["isTopFile"]){
+                loadFiles(true);
+            }
+            else{
+                loadFiles(false);
+            }
+        }
+    })
+}
+
+function OnClickLoadMessages(){
+    return function(){
+        loadMessages()
+    }
+}
+
+function genFile(title, id, link){
+    console.log("Inside genFile");                        //To secure later with less datas
+    let parent = document.getElementById("ulDocuments");
+    let listIl = parent.appendChild(document.createElement("li"));
+    listIl.draggable = true;
+    listIl.ondragstart = dragStartListener;
+    listIl.ondragenter = dragEnterDirListener;
+    listIl.ondragover = dragOverListener;
+    listIl.setAttribute("data-type", "File");
+    listIl.setAttribute("data-id", id);
+    let label = listIl.appendChild(document.createElement("label"));
+    label.innerText = title;
+    listIl.appendChild(createButton("submit", "renameFile", id, "Rename"));
+    let btnDelete = createButton("submit", "deleteFile", id, "Delete");
+    btnDelete.onclick = DeleteFile(id);
+    listIl.appendChild(btnDelete);
+    let btnDownload = createButton("submit", "downloadFile", id, "Download");
+    btnDownload.onclick = download(link);
+    listIl.appendChild(btnDownload);
+}
+
+function genDir(title, id, parent_id, conv_id){
+    let parent = document.getElementById("ulDocuments");
+    console.log("Generating directory " + title + " " + id);
+    if(parent == null){
+        console.log("Generating ulDocuments because is null");
+        let displayMod = document.getElementById("displayMod");
+        parent = document.createElement("ul");
+        parent.id = "ulDocuments";
+        displayMod.appendChild(parent);
+    }
+    let listIl = parent.appendChild(document.createElement("li"));
+    listIl.setAttribute("data-type", "Dir");
+    listIl.setAttribute("data-id", id);
+    listIl.draggable = true;
+    listIl.ondragstart = dragStartListener;
+    listIl.ondragenter = dragEnterDirListener;
+    listIl.ondragover = dragOverListener;
+    listIl.ondrop = dropDirListener;
+    let label = listIl.appendChild(document.createElement("label"));
+    label.innerText = title;
+    listIl.appendChild(createButton("submit", "selectDir", id, "Rename"));
+    let btnDelete = createButton("submit", "deleteDir", id, "Delete");
+    btnDelete.onclick = DeleteDir(id);
+    listIl.appendChild(btnDelete);
+    let dirEnterButton = createButton("submit", "enterDir", id, "Enter");
+    dirEnterButton.onclick= OnClickEnterDir(id);
+    listIl.appendChild(dirEnterButton);
+}
+
+function dragStartListener(e){
+    e.dataTransfer.effectAllowed="move";
+    console.log("dragStartListener");
+    let data = e.target.dataset.valueOf();
+    data = JSON.stringify(data);
+    e.dataTransfer.setData("text/plain", data);
+}
+
+function dragOverListener(e){
+    e.preventDefault();
+}
+
+function dragEnterDirListener(e){
+    e.preventDefault();
+}
+
+function dropDirListener(e){
+    console.log('----------------------');
+    console.log(e);
+    e.preventDefault();
+    let fd = new FormData();
+    let target = null;
+    if(e.target.closest("li") != null){
+       target = e.target.closest("li");
+    }
+    else{
+        target = e.target;
+    }
+    console.log(target);
+    let receiverDir = target.dataset.valueOf()["id"];
+    console.log("receiverDir = " + receiverDir);
+    let value = JSON.parse(e.dataTransfer.getData("text/plain"));
+    console.log(value);
+    let type = value["type"];
+    console.log(type)
+    let id = value["id"];
+    console.log(id);
+    console.log("Inside dropDirListener");
+    fd.append("type", 'dropInDir');
+    fd.append("mvItemId", id);
+    fd.append("receiverDir", receiverDir)
+    fd.append("itemType", type)
+    console.log("Send request...")
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            if(response["success"]){
+                loadFiles();
+            }
+            else{
+                alert("Error.");
+            }
+        }
+    })
+}
+
+function createButton(type, name, value, innerText=null, id=null, classe=null){
+    let button = document.createElement("button");
+    button.type = type;
+    button.name = name;
+    button.value = value;
+    button.innerText = innerText;
+    button.id = id;
+    button.class = classe;
+    return button
+}
+
+
+function fetchFiles(){
+    console.log("Inside fetchfiles")
+    let fd = new FormData();
+    fd.append("type", 'fetchFiles');
+    $.ajax({
+        type: "POST",
+        url: addrIP+"handler",
+        processData: false,
+        contentType: false,
+        data: fd,
+        cache: false,
+        async: true,
+        headers : {
+            'X-CSRFToken' : csrf_token,
+        },
+        success: function (response){
+            try {
+                console.log("Inside try of fetchFiles");
+                console.log("Number of subdirs:");
+                console.log(response["all_subdirs"].length)
+                console.log(response["all_subdirs"])
+
+                let displayMod = document.getElementById("displayMod");
+                displayMod.innerHTML = "";
+                if(response["parent"] === 0){
+                    let displayUl = document.createElement("ul");
+                    displayUl.id = "ulDocuments";
+                    displayMod.appendChild(displayUl);
+                }
+                else {
+                    let displayMod = document.getElementById("displayMod");
+                    let backButton = createButton("submit", "back", "", "Back", "backButton");
+                    backButton.setAttribute("data-id", response["parent"]);
+                    backButton.setAttribute("data-type", "Dir");
+                    backButton.ondragenter = dragEnterDirListener;
+                    backButton.ondragover = dragOverListener;
+                    backButton.ondrop = dropDirListener;
+                    backButton.onclick = OnClickBackDir();
+                    displayMod.appendChild(backButton);
+                    let displayUl = document.createElement("ul");
+                    displayUl.id = "ulDocuments";
+                    displayMod.appendChild(displayUl);
+                }
+                for(let i = 0; i < response["all_subdirs"].length; i++){
+                    console.log("Subdir id : " + i)
+                    JsonToDir(response['all_subdirs'][i]);
+                }
+                console.log("Number of file:");
+                console.log(response["all_files"].length);
+                for(let i = 0; i < response["all_files"].length; i++){
+                    console.log("In for");
+                    JsonToFile(response["all_files"][i]);
+                }
+            }
+            catch(e){}
+        }
+    })
+}
+
+function JsonToFile(file){
+    console.log("Inside JsonToFile");
+    let path = file.path;
+    let id = file.id;
+    let title = file.title;
+    let author_id = file.author_id;
+    let date = file.dateAdded;
+    let directory_id = file.directory_id;
+    let message_id = file.Message_id;
+    console.log(title);
+    genFile(title, id, path);
+}
+
+function JsonToDir(dir) {
+    let path = dir.path;
+    let id = dir.id;
+    let title = dir.title;
+    let parent_id = dir.parent_id;
+    let conv_id = dir.conv_User_id;
+    genDir(title, id, parent_id, conv_id, path);
+}
+
+function DeleteDir(dirId){
+    return function f() {
+        let fd = new FormData();
+        fd.append("type", 'deleteDir');
+        fd.append("id", dirId)
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                fetchFiles();
+            }
+        })
+    }
+}
+
+function DeleteFile(fileId){
+    return function f() {
+        let fd = new FormData();
+        fd.append("type", 'deleteFile');
+        fd.append("id", fileId)
+        $.ajax({
+            type: "POST",
+            url: addrIP + "handler",
+            processData: false,
+            contentType: false,
+            data: fd,
+            cache: false,
+            async: true,
+            headers: {
+                'X-CSRFToken': csrf_token,
+            },
+            success: function (response) {
+                fetchFiles();
+            }
+        })
+    }
+}
+
+function download(url){
+    return function f(){
+        window.open(url, '_blank');
+    }
+}
+
+createMessageListEnvironment(document.getElementById("displayMod"));
+createMessageInput(document.getElementById("displayMod"));
+prepareSendButton();
