@@ -67,13 +67,13 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
 class Message(models.Model):
     Sender = models.ForeignKey("Users", on_delete=models.DO_NOTHING, related_name="User_Sender")
-    Reply = models.ForeignKey("self", on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
+    Reply = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, default=None)
     Text = models.CharField(max_length=5000)
     Date = models.DateTimeField()
     files = models.ManyToManyField(File)
-
+    Edited = models.BooleanField(default=False);
     def __str__(self):
-        return "id: " + str(self.id) + "S: " + str(self.Sender) + "  R:  " + "   Texte: " + str(self.Text) + "   Time: " + str(self.Date)
+        return "id: " + str(self.id) + " S: " + str(self.Sender) + "  R:  " + "   Text: " + str(self.Text) + "   Time: " + str(self.Date)
 
 class Directory(models.Model):
     title = models.CharField(max_length=100)
