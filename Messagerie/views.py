@@ -1,3 +1,5 @@
+import pathlib
+
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
@@ -255,7 +257,7 @@ def handler(request):
                 for i in range(len(all_files)):
                     print(all_files[i])
                     print(all_files[i].Title)
-                    dictFiles.append({"path":all_files[i].file.path, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
+                    dictFiles.append({"path":all_files[i].file.url, "id":all_files[i].id, "title":all_files[i].Title, "author_id":all_files[i].Author.id, "date":all_files[i].dateAdded, "directory_id":all_files[i].directory.id, "message_id":all_files[i].Message.id})
                 for i in range(len(all_subdirs)):
                     print(all_subdirs[i])
                     dictDirs.append({"path":all_subdirs[i].path, "id":all_subdirs[i].id, "title":all_subdirs[i].title, "parent_id": all_subdirs[i].parent.id, "date":all_subdirs[i].Conv_User.id})
@@ -445,9 +447,22 @@ def downloadFile2(request, filepath):
         print(fl_path)
         wrapper = FileWrapper(open(fl_path))
         content_type = mimetypes.guess_type(fl_path)[0]
+        print(content_type)
+        print(fl_path)
         response = HttpResponse(wrapper, content_type=content_type)
         response['Content-Length'] = os.path.getsize(fl_path)
         response['Content-Disposition'] = "attachment; filename=%s" % filename
         return response
     else:
         return index(request)
+
+def download(request, filepath):
+    if "downloadFile" in request.POST:
+        file = File.objects.get(id=request.POST['downloadFile'])
+        print(file)
+        filename = file.Title
+        fl_path = file.file.path
+        print(fl_path)
+        extension = pathlib.Path(filename).suffix
+        filename_with_extension = "{0}{1}".format(filename, extension)
+        return FileResponse(file, as_attachment=True)

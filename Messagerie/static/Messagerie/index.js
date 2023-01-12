@@ -660,7 +660,7 @@ function OnClickLoadMessages(){
     }
 }
 
-function genFile(title, id){
+function genFile(title, id, link){
     console.log("Inside genFile");                        //To secure later with less datas
     let parent = document.getElementById("ulDocuments");
     let listIl = parent.appendChild(document.createElement("li"));
@@ -677,7 +677,7 @@ function genFile(title, id){
     btnDelete.onclick = DeleteFile(id);
     listIl.appendChild(btnDelete);
     let btnDownload = createButton("submit", "downloadFile", id, "Download");
-    btnDownload.onclick = download(id);
+    btnDownload.onclick = download(link);
     listIl.appendChild(btnDownload);
 }
 
@@ -856,7 +856,7 @@ function JsonToFile(file){
     let directory_id = file.directory_id;
     let message_id = file.Message_id;
     console.log(title);
-    genFile(title, id);
+    genFile(title, id, path);
 }
 
 function JsonToDir(dir) {
@@ -914,58 +914,9 @@ function DeleteFile(fileId){
     }
 }
 
-function download(id){
-    let fd = new FormData();
-        fd.append("id", id)
-        fd.append("type", "getFileName")
-        $.ajax({
-        type: "POST",
-        url: addrIP+"handler/",
-        processData: false,
-        contentType: false,
-        data: fd,
-        cache: false,
-        async: false,
-        headers : {
-            'X-CSRFToken' : csrf_token,
-        },
-        success: function (data){
-            fileName = data["title"];
-        }
-        })
-
-
-    return function f() {
-        let fd = new FormData();
-        fd.append("downloadFile", id)
-        $.ajax({
-        type: "POST",
-        url: "download/",
-        processData: false,
-        contentType: false,
-        data: fd,
-        cache: false,
-        async: false,
-        headers : {
-            'X-CSRFToken' : csrf_token,
-        },
-        success: function (data){
-            var blob = new Blob([data], { type: "application/octetstream" });
-            var isIE = false || !!document.documentMode;
-                    if (isIE) {
-                        window.navigator.msSaveBlob(blob, fileName);
-                    } else {
-                        var url = window.URL || window.webkitURL;
-                        link = url.createObjectURL(blob);
-                        var a = $("<a />");
-                        a.attr("download", fileName);
-                        a.attr("href", link);
-                        $("body").append(a);
-                        a[0].click();
-                        $("body").remove(a);
-                    }
-        }
-    })
+function download(url){
+    return function f(){
+        window.open(url, '_blank');
     }
 }
 
